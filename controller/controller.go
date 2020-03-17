@@ -118,6 +118,22 @@ func (h *Handler) AddController(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"message": "controller added", "controller_id": entity.ControllerId})
 }
 
+func (h *Handler) ListControllers(ctx *gin.Context) {
+	userId, err := getUserId(ctx)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	entityList, err := h.repo.ListControllers(userId)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"list": entityList})
+}
+
 // Helper function that returns userId from context
 func getUserId(ctx *gin.Context) (string, error) {
 	// get userId
