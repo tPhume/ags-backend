@@ -32,6 +32,6 @@ func StructValidation(sl validator.StructLevel) {
 // Function to add ControllerStructValidation to Gin's default Validator engine
 func addStructValidation(engine *gin.Engine) {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterStructValidation(StructValidation)
+		v.RegisterStructValidation(StructValidation, Controller{})
 	}
 }
