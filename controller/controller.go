@@ -1,3 +1,5 @@
+// Package controller deals with Controller resource in our data source
+// Usage outside of this package should only be to register routes for Gin Engine
 package controller
 
 import (
