@@ -52,7 +52,7 @@ func addStructValidation(engine *gin.Engine) {
 type Repo interface {
 	// AddController creates new controller at data source given *Entity type
 	// Duplicated Controller entity will result in an error
-	AddController(entity *Entity) error
+	AddController(*Entity) error
 
 	// ListControllers fetches all controller under the given UserId
 	// Return of empty slice does not imply error
