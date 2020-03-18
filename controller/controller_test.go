@@ -16,25 +16,28 @@ var controller = Entity{
 // Repo struct for happy path testing
 type repoHappy struct{}
 
-func (t repoHappy) AddController(entity *Entity) error {
+func (t *repoHappy) AddController(entity *Entity) error {
 	return nil
 }
 
-func (t repoHappy) ListControllers(string) ([]*Entity, error) {
-	return []*Entity{&Entity{Name: "Happy"}}, nil
+func (t *repoHappy) ListControllers(string) ([]*Entity, error) {
+	return []*Entity{{Name: "Happy"}}, nil
 }
 
-func (t repoHappy) GetController(string) (*Entity, error) {
+func (t *repoHappy) GetController(string) (*Entity, error) {
 	return &Entity{Name: "Happy"}, nil
 }
 
-func (t repoHappy) UpdateController(*Entity) error {
+func (t *repoHappy) UpdateController(*Entity) error {
 	return nil
 }
 
 func (t *repoHappy) RemoveController(string) error {
 	return nil
 }
+
+// Handler struct for happy path testing
+var handlerHappy = &Handler{repo: &repoHappy{}}
 
 // Test Entity Struct validation
 func TestStructValidation(t *testing.T) {
@@ -48,7 +51,7 @@ func TestStructValidation(t *testing.T) {
 
 // Test AddControllers handler
 func TestHandler_AddController(t *testing.T) {
-	
+
 }
 
 // Test ListController handler
