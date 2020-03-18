@@ -35,7 +35,7 @@ func (t *repoStruct) AddController(entity *Entity) error {
 }
 
 func (t *repoStruct) ListControllers(string) ([]*Entity, error) {
-	return []*Entity{{Name: "Happy"}}, nil
+	return []*Entity{&controller}, nil
 }
 
 func (t *repoStruct) GetController(string) (*Entity, error) {
@@ -135,7 +135,43 @@ func TestHandler_AddController(t *testing.T) {
 
 // Test ListController handler
 func TestHandler_ListControllers(t *testing.T) {
+	engine := setUp()
+	engine.GET("", handler.ListControllers)
 
+	testCases := []struct {
+		in      mapping
+		message string
+		code    int
+	}{
+		{
+			in:      mapping{},
+			message: resList,
+			code:    http.StatusOK,
+		}, {
+			in:   mapping{"somekey": "somevalue"},
+			message: resList,
+			code: http.StatusOK,
+		},
+	}
+
+	for _, c := range testCases {
+		resp := httptest.NewRecorder()
+
+		body, _ := json.Marshal(c.in)
+		req, _ := http.NewRequest(http.MethodGet, "", bytes.NewReader(body))
+		engine.ServeHTTP(resp, req)
+
+		respBody := mapping{}
+		_ = json.Unmarshal(resp.Body.Bytes(), &respBody)
+
+		if c.code != resp.Code {
+			t.Fatalf("expected [%v], got = [%v]", c.code, resp.Code)
+		}
+
+		if c.message != respBody["message"] {
+			t.Fatalf("expected [%v], got = [%v]", c.message, respBody["message"])
+		}
+	}
 }
 
 // Test GetController handler
