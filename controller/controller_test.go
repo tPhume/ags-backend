@@ -46,8 +46,12 @@ func (t *repoStruct) GetController(entity *Entity) error {
 	return controllerNotFound
 }
 
-func (t *repoStruct) UpdateController(*Entity) error {
-	return nil
+func (t *repoStruct) UpdateController(entity *Entity) error {
+	if entity.ControllerId == controller.ControllerId {
+		return nil
+	}
+
+	return controllerNotFound
 }
 
 func (t *repoStruct) RemoveController(string) error {
@@ -143,15 +147,10 @@ func TestHandler_ListControllers(t *testing.T) {
 	engine.GET("", handler.ListControllers)
 
 	testCases := []struct {
-		in      mapping
 		message string
 		code    int
 	}{
 		{
-			message: resList,
-			code:    http.StatusOK,
-		}, {
-			in:      mapping{"somekey": "somevalue"},
 			message: resList,
 			code:    http.StatusOK,
 		},
@@ -199,7 +198,7 @@ func TestHandler_GetController(t *testing.T) {
 			code:         http.StatusBadRequest,
 		}, {
 			in:           mapping{},
-			controllerId: "76de6d55-e457-4070-8aef-5633726d498f",
+			controllerId: controller.UserId,
 			message:      resNotFound,
 			code:         http.StatusNotFound,
 		},
@@ -227,7 +226,46 @@ func TestHandler_GetController(t *testing.T) {
 
 // Test UpdateController handler
 func TestHandler_UpdateController(t *testing.T) {
+	engine := setUp()
+	engine.PATCH(":controllerId", handler.UpdateHandler)
 
+	testCases := []struct {
+		in      string
+		message string
+		code    int
+	}{
+		{
+			in:      controller.ControllerId,
+			message: resUpdate,
+			code:    http.StatusOK,
+		}, {
+			in:      "lkmwklfmd",
+			message: resInvalid,
+			code:    http.StatusBadRequest,
+		}, {
+			in:      controller.UserId,
+			message: resNotFound,
+			code:    http.StatusNotFound,
+		},
+	}
+
+	for _, c := range testCases {
+		resp := httptest.NewRecorder()
+
+		req, _ := http.NewRequest(http.MethodPatch, c.in, nil)
+		engine.ServeHTTP(resp, req)
+
+		respBody := mapping{}
+		_ = json.Unmarshal(resp.Body.Bytes(), &respBody)
+
+		if c.code != resp.Code {
+			t.Fatalf("expected [%v], got = [%v]", c.code, resp.Code)
+		}
+
+		if c.message != respBody["message"] {
+			t.Fatalf("expected [%v], got = [%v]", c.message, respBody["message"])
+		}
+	}
 }
 
 // Test RemoveController handler
