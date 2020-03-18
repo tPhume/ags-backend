@@ -81,11 +81,6 @@ func TestHandler_AddController(t *testing.T) {
 	engine := setUp()
 	engine.POST("", handler.AddController)
 
-	// response messages expected
-	badResponse := "invalid values"
-	duplicateResponse := "duplicate name"
-	goodResponse := "controller added"
-
 	testCases := []struct {
 		in      mapping
 		message string
@@ -93,27 +88,27 @@ func TestHandler_AddController(t *testing.T) {
 	}{
 		{
 			in:      mapping{"Name": "GoodName", "Desc": "GoodDesc"},
-			message: goodResponse,
+			message: resAdded,
 			code:    http.StatusCreated,
 		}, {
 			in:      mapping{"Name": "GoodName", "Desc": ""},
-			message: goodResponse,
+			message: resAdded,
 			code:    http.StatusCreated,
 		}, {
 			in:      mapping{"Name": "", "Desc": "GoodDesc"},
-			message: badResponse,
+			message: resInvalid,
 			code:    http.StatusBadRequest,
 		}, {
 			in:      mapping{"Name": "    ", "Desc": "GoodDesc"},
-			message: badResponse,
+			message: resInvalid,
 			code:    http.StatusBadRequest,
 		}, {
 			in:      mapping{"Name": "DuplicateName", "Desc": "GoodDesc"},
-			message: duplicateResponse,
+			message: resDup,
 			code:    http.StatusBadRequest,
 		}, {
 			in:      mapping{"Name": "InternalName", "Desc": "GoodDesc"},
-			message: "",
+			message: resInternal,
 			code:    http.StatusInternalServerError,
 		},
 	}

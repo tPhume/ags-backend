@@ -86,12 +86,21 @@ type Handler struct {
 var (
 	keyNotFound = errors.New("key not found")
 	castingFail = errors.New("casting fail")
+
+	// ok message responses for handler
+	resAdded = "controller added"
+	resList  = "controllers list retrieved"
+
+	// error message responses for handler
+	resInternal = "not your fault, don't worry"
+	resInvalid  = "invalid values"
+	resDup      = "duplicate name"
 )
 
 func (h *Handler) AddController(ctx *gin.Context) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
 
@@ -101,37 +110,39 @@ func (h *Handler) AddController(ctx *gin.Context) {
 	}
 
 	if err = ctx.ShouldBindJSON(entity); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid values"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		return
 	}
 
+	entity.Name = strings.TrimSpace(entity.Name)
+
 	if err = h.repo.AddController(entity); err != nil {
 		if err == duplicateName {
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": "duplicate name"})
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": resDup})
 		} else {
-			ctx.Status(http.StatusInternalServerError)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		}
 
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": "controller added", "controller_id": entity.ControllerId})
+	ctx.JSON(http.StatusCreated, gin.H{"message": resAdded, "controller_id": entity.ControllerId})
 }
 
 func (h *Handler) ListControllers(ctx *gin.Context) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
 
 	entityList, err := h.repo.ListControllers(userId)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"list": entityList})
+	ctx.JSON(http.StatusOK, gin.H{"message": resList, "list": entityList})
 }
 
 // Helper function that returns userId from context
