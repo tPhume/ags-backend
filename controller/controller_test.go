@@ -227,7 +227,7 @@ func TestHandler_GetController(t *testing.T) {
 // Test UpdateController handler
 func TestHandler_UpdateController(t *testing.T) {
 	engine := setUp()
-	engine.PATCH(":controllerId", handler.UpdateHandler)
+	engine.PATCH(":controllerId", handler.UpdateController)
 
 	testCases := []struct {
 		in      string
@@ -236,17 +236,23 @@ func TestHandler_UpdateController(t *testing.T) {
 		code    int
 	}{
 		{
-			in:      controller.ControllerId,
-			body:    mapping{"update": []string{"name", "desc", "plan"}, "Name": "GoodName", "Desc": "GoodDesc"},
+			in: controller.ControllerId,
+			body: mapping{
+				"update":     []string{"name", "desc", "plan"},
+				"controller": mapping{"Name": "GoodName", "Desc": "GoodDesc"},
+			},
 			message: resUpdate,
 			code:    http.StatusOK,
-		}, {
-			in:      "lkmwklfmd",
+		},
+		{
+			in:
+			"lkmwklfmd",
 			body:    mapping{},
 			message: resInvalid,
 			code:    http.StatusBadRequest,
 		}, {
-			in:      controller.UserId,
+			in:
+			controller.UserId,
 			body:    mapping{},
 			message: resNotFound,
 			code:    http.StatusNotFound,
