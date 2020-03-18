@@ -58,9 +58,9 @@ type Repo interface {
 	// Return of empty slice does not imply error
 	ListControllers(string) ([]*Entity, error)
 
-	// GetController fetches specific controller by given ControllerId
+	// GetController fetches specific controller by given Entity with UserId and ControllerId
 	// Return of nil value for *Entity indicates error
-	GetController(string) (*Entity, error)
+	GetController(*Entity) error
 
 	// UpdateController does partial update given *Controller type
 	// No new controller is created if controller is not found
@@ -89,12 +89,14 @@ var (
 
 	// ok message responses for handler
 	resAdded = "controller added"
-	resList  = "controllers list retrieved"
+	resList  = "list of controllers retrieved"
+	resGet   = "controller retrieved"
 
 	// error message responses for handler
 	resInternal = "not your fault, don't worry"
 	resInvalid  = "invalid values"
 	resDup      = "duplicate name"
+	resNotFound = "not found"
 )
 
 func (h *Handler) AddController(ctx *gin.Context) {
@@ -143,6 +145,33 @@ func (h *Handler) ListControllers(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": resList, "list": entityList})
+}
+
+func (h *Handler) GetController(ctx *gin.Context) {
+	userId, err := getUserId(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	controllerId := ctx.Param("controllerId")
+	if _, err = uuid.Parse(controllerId); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	entity := &Entity{ControllerId: controllerId, UserId: userId}
+	if err = h.repo.GetController(entity); err != nil {
+		if err == controllerNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		}
+
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": resGet, "controller": entity})
 }
 
 // Helper function that returns userId from context
