@@ -36,7 +36,7 @@ func (t *repoHappy) RemoveController(string) error {
 	return nil
 }
 
-// Test starts from here
+// Test Entity Struct validation
 func TestStructValidation(t *testing.T) {
 	v := validator.New()
 	v.RegisterStructValidation(StructValidation, Entity{})
@@ -44,4 +44,29 @@ func TestStructValidation(t *testing.T) {
 	if err := v.Struct(controller); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// Test AddControllers handler
+func TestHandler_AddController(t *testing.T) {
+	
+}
+
+// Test ListController handler
+func TestHandler_ListControllers(t *testing.T) {
+
+}
+
+// Test GetController handler
+func TestHandler_GetController(t *testing.T) {
+
+}
+
+// Test UpdateController handler
+func TestHandler_UpdateController(t *testing.T) {
+
+}
+
+// Test RemoveController handler
+func TestHandler_RemoveController(t *testing.T) {
+
 }
