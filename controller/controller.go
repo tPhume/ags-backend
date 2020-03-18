@@ -3,14 +3,18 @@
 package controller
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 	"gopkg.in/go-playground/validator.v9"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
+
+type mapping map[string]interface{}
 
 // Controller Entity type represent edge device
 type Entity struct {
@@ -35,9 +39,16 @@ func StructValidation(sl validator.StructLevel) {
 		sl.ReportError(entity.UserId, "UserId", "UserId", "", "")
 	}
 
-	// checks name
+	// checks Name
 	if len(strings.TrimSpace(entity.Name)) < 1 {
 		sl.ReportError(entity.Name, "name", "name", "", "")
+	}
+
+	// check Plan
+	if len(strings.TrimSpace(entity.Plan)) > 1 {
+		if _, err := uuid.Parse(entity.Plan); err != nil {
+			sl.ReportError(entity.Plan, "Plan", "Plan", "", "")
+		}
 	}
 }
 
@@ -62,9 +73,9 @@ type Repo interface {
 	// Return of nil value for *Entity indicates error
 	GetController(*Entity) error
 
-	// UpdateController does partial update given *Controller type
+	// UpdateController does partial update given *Controller type and some value to update (mapping)
 	// No new controller is created if controller is not found
-	UpdateController(*Entity) error
+	UpdateController(mapping) (*Entity, error)
 
 	// RemoveController deletes data from data source given ControllerId
 	// Cascade deletion is done asynchronously
@@ -84,13 +95,16 @@ type Handler struct {
 }
 
 var (
+	// error messages in general
 	keyNotFound = errors.New("key not found")
 	castingFail = errors.New("casting fail")
+	badFormat   = errors.New("")
 
 	// ok message responses for handler
-	resAdded = "controller added"
-	resList  = "list of controllers retrieved"
-	resGet   = "controller retrieved"
+	resAdded  = "controller added"
+	resList   = "list of controllers retrieved"
+	resGet    = "controller retrieved"
+	resUpdate = "controller updated"
 
 	// error message responses for handler
 	resInternal = "not your fault, don't worry"
@@ -154,6 +168,7 @@ func (h *Handler) GetController(ctx *gin.Context) {
 		return
 	}
 
+	// check controllerId
 	controllerId := ctx.Param("controllerId")
 	if _, err = uuid.Parse(controllerId); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
@@ -172,6 +187,92 @@ func (h *Handler) GetController(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": resGet, "controller": entity})
+}
+
+func (h *Handler) UpdateController(ctx *gin.Context) {
+	userId, err := getUserId(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	// check controllerId
+	controllerId := ctx.Param("controllerId")
+	if _, err = uuid.Parse(controllerId); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	// extract request body from context
+	reqBody, err := ioutil.ReadAll(ctx.Request.Body)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	// unmarshal to map
+	updateMap := make(mapping)
+	if err = json.Unmarshal(reqBody, &updateMap); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	// addUserId and controllerId
+	updateMap["userId"] = userId
+	updateMap["controllerId"] = controllerId
+
+	if err = checkUpdateMap(updateMap); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	// use repo to call external data source
+	entity, err := h.repo.UpdateController(updateMap)
+	if err != nil {
+		if err == controllerNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		}
+
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": resUpdate, "controller": entity})
+}
+
+// Helper function to check map for update
+func checkUpdateMap(updateMap mapping) error {
+	if v, exist := updateMap["name"]; exist {
+		s, ok := v.(string)
+		if !ok {
+			return badFormat
+		}
+
+		if len(strings.TrimSpace(s)) < 1 {
+			return badFormat
+		}
+	}
+
+	if v, exist := updateMap["desc"]; exist {
+		_, ok := v.(string)
+		if !ok {
+			return badFormat
+		}
+	}
+
+	if v, exist := updateMap["name"]; exist {
+		s, ok := v.(string)
+		if !ok {
+			return badFormat
+		}
+
+		if _, err := uuid.Parse(s); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Helper function that returns userId from context

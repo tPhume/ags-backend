@@ -11,8 +11,6 @@ import (
 	"testing"
 )
 
-type mapping = map[string]interface{}
-
 var controller = Entity{
 	ControllerId: "f1d67e51-4ca4-4b25-a4b7-6c8f06822075",
 	UserId:       "76de6d55-e457-4070-8aef-5633726d498f",
@@ -46,12 +44,12 @@ func (t *repoStruct) GetController(entity *Entity) error {
 	return controllerNotFound
 }
 
-func (t *repoStruct) UpdateController(update []string, entity *Entity) error {
-	if entity.ControllerId == controller.ControllerId {
-		return nil
+func (t *repoStruct) UpdateController(updateMap mapping) (*Entity, error) {
+	if updateMap["controllerId"] == controller.ControllerId {
+		return nil, nil
 	}
 
-	return controllerNotFound
+	return nil, controllerNotFound
 }
 
 func (t *repoStruct) RemoveController(string) error {
@@ -236,11 +234,8 @@ func TestHandler_UpdateController(t *testing.T) {
 		code    int
 	}{
 		{
-			in: controller.ControllerId,
-			body: mapping{
-				"update":     []string{"name", "desc", "plan"},
-				"controller": mapping{"Name": "GoodName", "Desc": "GoodDesc"},
-			},
+			in:      controller.ControllerId,
+			body:    mapping{"Name": "GoodName", "Desc": "GoodDesc"},
 			message: resUpdate,
 			code:    http.StatusOK,
 		},
@@ -253,7 +248,7 @@ func TestHandler_UpdateController(t *testing.T) {
 		}, {
 			in:
 			controller.UserId,
-			body:    mapping{},
+			body:    mapping{"Desc": "GoodDesc"},
 			message: resNotFound,
 			code:    http.StatusNotFound,
 		},
