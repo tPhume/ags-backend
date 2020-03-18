@@ -38,8 +38,12 @@ func (t *repoStruct) ListControllers(string) ([]*Entity, error) {
 	return []*Entity{&controller}, nil
 }
 
-func (t *repoStruct) GetController(string) (*Entity, error) {
-	return &Entity{Name: "Happy"}, nil
+func (t *repoStruct) GetController(controllerId string) (*Entity, error) {
+	if controllerId == controller.ControllerId {
+		return &controller, nil
+	}
+
+	return nil, controllerNotFound
 }
 
 func (t *repoStruct) UpdateController(*Entity) error {
@@ -144,21 +148,19 @@ func TestHandler_ListControllers(t *testing.T) {
 		code    int
 	}{
 		{
-			in:      mapping{},
 			message: resList,
 			code:    http.StatusOK,
 		}, {
-			in:   mapping{"somekey": "somevalue"},
+			in:      mapping{"somekey": "somevalue"},
 			message: resList,
-			code: http.StatusOK,
+			code:    http.StatusOK,
 		},
 	}
 
 	for _, c := range testCases {
 		resp := httptest.NewRecorder()
 
-		body, _ := json.Marshal(c.in)
-		req, _ := http.NewRequest(http.MethodGet, "", bytes.NewReader(body))
+		req, _ := http.NewRequest(http.MethodGet, "", nil)
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
@@ -176,7 +178,59 @@ func TestHandler_ListControllers(t *testing.T) {
 
 // Test GetController handler
 func TestHandler_GetController(t *testing.T) {
+	engine := setUp()
+	engine.GET("/:controllerId", handler.GetController)
 
+	testCases := []struct {
+		in           mapping
+		controllerId string
+		out          Entity
+		message      string
+		code         int
+	}{
+		{
+			in:           mapping{},
+			controllerId: controller.ControllerId,
+			out:          controller,
+			message:      resGet,
+			code:         http.StatusOK,
+		}, {
+			in:           mapping{},
+			controllerId: "fmkdjsnlfk",
+			out:          nil,
+			message:      resInvalid,
+			code:         http.StatusBadRequest,
+		}, {
+			in:           mapping{},
+			controllerId: "76de6d55-e457-4070-8aef-5633726d498f",
+			out:          nil,
+			message:      resNotFound,
+			code:         http.StatusNotFound,
+		},
+	}
+
+	for _, c := range testCases {
+		resp := httptest.NewRecorder()
+
+		body, _ := json.Marshal(c.in)
+		req, _ := http.NewRequest(http.MethodGet, c.controllerId, bytes.NewReader(body))
+		engine.ServeHTTP(resp, req)
+
+		respBody := mapping{}
+		_ = json.Unmarshal(resp.Body.Bytes(), &respBody)
+
+		if c.code != resp.Code {
+			t.Fatalf("expected [%v], got = [%v]", c.code, resp.Code)
+		}
+
+		if c.message != respBody["message"] {
+			t.Fatalf("expected [%v], got = [%v]", c.message, respBody["message"])
+		}
+
+		if c.out != respBody["controller"] {
+			t.Fatalf("expected [%v], got = [%v]", c.out, respBody["controller"])
+		}
+	}
 }
 
 // Test UpdateController handler
