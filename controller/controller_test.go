@@ -46,7 +46,7 @@ func (t *repoStruct) GetController(entity *Entity) error {
 	return controllerNotFound
 }
 
-func (t *repoStruct) UpdateController(entity *Entity) error {
+func (t *repoStruct) UpdateController(update []string, entity *Entity) error {
 	if entity.ControllerId == controller.ControllerId {
 		return nil
 	}
@@ -231,19 +231,23 @@ func TestHandler_UpdateController(t *testing.T) {
 
 	testCases := []struct {
 		in      string
+		body    mapping
 		message string
 		code    int
 	}{
 		{
 			in:      controller.ControllerId,
+			body:    mapping{"update": []string{"name", "desc", "plan"}, "Name": "GoodName", "Desc": "GoodDesc"},
 			message: resUpdate,
 			code:    http.StatusOK,
 		}, {
 			in:      "lkmwklfmd",
+			body:    mapping{},
 			message: resInvalid,
 			code:    http.StatusBadRequest,
 		}, {
 			in:      controller.UserId,
+			body:    mapping{},
 			message: resNotFound,
 			code:    http.StatusNotFound,
 		},
@@ -252,7 +256,8 @@ func TestHandler_UpdateController(t *testing.T) {
 	for _, c := range testCases {
 		resp := httptest.NewRecorder()
 
-		req, _ := http.NewRequest(http.MethodPatch, c.in, nil)
+		body, _ := json.Marshal(c.body)
+		req, _ := http.NewRequest(http.MethodPatch, c.in, bytes.NewReader(body))
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
