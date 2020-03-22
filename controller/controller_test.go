@@ -52,7 +52,13 @@ func (t *repoStruct) UpdateController(updateMap mapping) (*Entity, error) {
 	return nil, controllerNotFound
 }
 
-func (t *repoStruct) RemoveController(string) error {
+func (t *repoStruct) RemoveController(userId string, controllerId string) error {
+	if controllerId == controller.ControllerId {
+		return nil
+	} else if controllerId == controller.UserId {
+		return controllerNotFound
+	}
+
 	return nil
 }
 
@@ -66,7 +72,7 @@ func setUp() *gin.Engine {
 
 	addStructValidation(engine)
 	engine.Use(func(context *gin.Context) {
-		context.Set("userId", "76de6d55-e457-4070-8aef-5633726d498f")
+		context.Set("userId", controller.UserId)
 	})
 
 	return engine
@@ -276,5 +282,44 @@ func TestHandler_UpdateController(t *testing.T) {
 
 // Test RemoveController handler
 func TestHandler_RemoveController(t *testing.T) {
+	engine := setUp()
+	engine.DELETE("/:controllerId", handler.RemoveController)
 
+	testCases := []struct {
+		in      string
+		message string
+		code    int
+	}{
+		{
+			in:      controller.ControllerId,
+			message: resDelete,
+			code:    http.StatusOK,
+		}, {
+			in:      controller.ControllerId,
+			message: resNotFound,
+			code:    http.StatusNotFound,
+		}, {
+			in:      "fenwklfmke",
+			message: resInvalid,
+			code:    http.StatusBadRequest,
+		},
+	}
+
+	for _, c := range testCases {
+		resp := httptest.NewRecorder()
+
+		req , _:= http.NewRequest(http.MethodDelete, c.in, nil)
+		engine.ServeHTTP(resp, req)
+
+		respBody := mapping{}
+		_ = json.Unmarshal(resp.Body.Bytes(), respBody)
+
+		if c.code != resp.Code {
+			t.Fatalf("expected [%v], got = [%v]", c.code, resp.Code)
+		}
+
+		if c.message != respBody["message"] {
+			t.Fatalf("expected [%v], got = [%v]", c.message, respBody["message"])
+		}
+	}
 }
