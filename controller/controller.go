@@ -80,7 +80,7 @@ type Repo interface {
 	// RemoveController deletes data from data source given ControllerId
 	// Cascade deletion is done asynchronously
 	// Missing controller will result in an error
-	RemoveController(string) error
+	RemoveController(string, string) error
 }
 
 // Contains errors that implementation of Repo should use
@@ -105,6 +105,7 @@ var (
 	resList   = "list of controllers retrieved"
 	resGet    = "controller retrieved"
 	resUpdate = "controller updated"
+	resRemove = "controller removed"
 
 	// error message responses for handler
 	resInternal = "not your fault, don't worry"
@@ -116,6 +117,11 @@ var (
 func (h *Handler) AddController(ctx *gin.Context) {
 	userId, err := getUserId(ctx)
 	if err != nil {
+		if err == badFormat {
+			ctx.JSON(http.StatusBadRequest, resInvalid)
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
@@ -148,6 +154,11 @@ func (h *Handler) AddController(ctx *gin.Context) {
 func (h *Handler) ListControllers(ctx *gin.Context) {
 	userId, err := getUserId(ctx)
 	if err != nil {
+		if err == badFormat {
+			ctx.JSON(http.StatusBadRequest, resInvalid)
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
@@ -164,6 +175,11 @@ func (h *Handler) ListControllers(ctx *gin.Context) {
 func (h *Handler) GetController(ctx *gin.Context) {
 	userId, err := getUserId(ctx)
 	if err != nil {
+		if err == badFormat {
+			ctx.JSON(http.StatusBadRequest, resInvalid)
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
@@ -192,6 +208,11 @@ func (h *Handler) GetController(ctx *gin.Context) {
 func (h *Handler) UpdateController(ctx *gin.Context) {
 	userId, err := getUserId(ctx)
 	if err != nil {
+		if err == badFormat {
+			ctx.JSON(http.StatusBadRequest, resInvalid)
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
@@ -286,6 +307,10 @@ func getUserId(ctx *gin.Context) (string, error) {
 	userId, ok := v.(string)
 	if !ok {
 		return "", castingFail
+	}
+
+	if _, err := uuid.Parse(userId); err != nil {
+		return "", badFormat
 	}
 
 	return userId, nil

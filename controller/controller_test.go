@@ -292,7 +292,7 @@ func TestHandler_RemoveController(t *testing.T) {
 	}{
 		{
 			in:      controller.ControllerId,
-			message: resDelete,
+			message: resRemove,
 			code:    http.StatusOK,
 		}, {
 			in:      controller.ControllerId,
