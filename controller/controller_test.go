@@ -295,7 +295,7 @@ func TestHandler_RemoveController(t *testing.T) {
 			message: resRemove,
 			code:    http.StatusOK,
 		}, {
-			in:      controller.ControllerId,
+			in:      controller.UserId,
 			message: resNotFound,
 			code:    http.StatusNotFound,
 		}, {
@@ -312,7 +312,7 @@ func TestHandler_RemoveController(t *testing.T) {
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
-		_ = json.Unmarshal(resp.Body.Bytes(), respBody)
+		_ = json.Unmarshal(resp.Body.Bytes(), &respBody)
 
 		if c.code != resp.Code {
 			t.Fatalf("expected [%v], got = [%v]", c.code, resp.Code)

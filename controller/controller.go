@@ -262,6 +262,38 @@ func (h *Handler) UpdateController(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": resUpdate, "controller": entity})
 }
 
+func (h *Handler) RemoveController(ctx *gin.Context) {
+	userId, err := getUserId(ctx)
+	if err != nil {
+		if err == badFormat {
+			ctx.JSON(http.StatusBadRequest, resInvalid)
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	// check controllerId
+	controllerId := ctx.Param("controllerId")
+	if _, err = uuid.Parse(controllerId); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	if err = h.repo.RemoveController(userId, controllerId); err != nil {
+		if err == controllerNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": resRemove})
+}
+
 // Helper function to check map for update
 func checkUpdateMap(updateMap mapping) error {
 	if v, exist := updateMap["name"]; exist {
