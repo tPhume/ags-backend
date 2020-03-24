@@ -362,7 +362,7 @@ func TestGenerateToken(t *testing.T) {
 	for _, c := range testCases {
 		resp := httptest.NewRecorder()
 
-		req, _ := http.NewRequest(http.MethodPost, c.in, nil)
+		req, _ := http.NewRequest(http.MethodPost, c.in + "/token", nil)
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}

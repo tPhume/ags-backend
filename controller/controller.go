@@ -3,12 +3,15 @@
 package controller
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 	"gopkg.in/go-playground/validator.v9"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -64,6 +67,10 @@ type Repo interface {
 	// Cascade deletion is done asynchronously
 	// Missing controller will result in an error
 	RemoveController(string, string) error
+
+	// GenerateToken replaces the token (must be hashed prior) given the userId, controllerId and hashed token
+	// Missing controller will result in an error
+	GenerateToken(string, string, string) error
 }
 
 // Contains errors that implementation of Repo should use
@@ -85,11 +92,12 @@ var (
 	badFormat   = errors.New("")
 
 	// ok message responses for handler
-	resAdded  = "controller added"
-	resList   = "list of controllers retrieved"
-	resGet    = "controller retrieved"
-	resUpdate = "controller updated"
-	resRemove = "controller removed"
+	resAdded    = "controller added"
+	resList     = "list of controllers retrieved"
+	resGet      = "controller retrieved"
+	resUpdate   = "controller updated"
+	resRemove   = "controller removed"
+	resGenerate = "controller's token generated"
 
 	// error message responses for handler
 	resInternal = "not your fault, don't worry"
@@ -278,6 +286,49 @@ func (h *Handler) RemoveController(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": resRemove})
 }
 
+func (h *Handler) GenerateToken(ctx *gin.Context) {
+	userId, err := getUserId(ctx)
+	if err != nil {
+		if err == badFormat {
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	// check controllerId
+	controllerId := ctx.Param("controllerId")
+	if _, err := uuid.Parse(controllerId); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	// generate token
+	tokenId := uuid.New().String()
+	hash := hmac.New(sha256.New, []byte(h.key))
+
+	if _, err := io.WriteString(hash, tokenId); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+	hashedToken := string(hash.Sum(nil))
+
+	if err := h.repo.GenerateToken(userId, controllerId, hashedToken); err != nil {
+		if err == controllerNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": resGenerate, "token_id": tokenId})
+}
+
+// Utility functions that makes life somewhat easier
 // Helper function to check map for update
 func checkUpdateMap(updateMap mapping) error {
 	if v, exist := updateMap["name"]; exist {
