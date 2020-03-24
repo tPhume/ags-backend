@@ -18,9 +18,9 @@ type mapping map[string]interface{}
 
 // Controller Entity type represent edge device
 type Entity struct {
-	ControllerId string `json:"controller_id" validate:"required"`
-	UserId       string `json:"user_id" validate:"required"`
-	Name         string `json:"name" validate:"required"`
+	ControllerId string `json:"controller_id"`
+	UserId       string
+	Name         string `json:"name"`
 	Desc         string `json:"desc"`
 	Plan         string `json:"plan"`
 }
@@ -29,26 +29,9 @@ type Entity struct {
 func StructValidation(sl validator.StructLevel) {
 	entity := sl.Current().Interface().(Entity)
 
-	// checks ControllerId
-	if _, err := uuid.Parse(entity.ControllerId); err != nil {
-		sl.ReportError(entity.ControllerId, "ControllerId", "ControllerId", "", "")
-	}
-
-	// checks UserId
-	if _, err := uuid.Parse(entity.UserId); err != nil {
-		sl.ReportError(entity.UserId, "UserId", "UserId", "", "")
-	}
-
 	// checks Name
 	if len(strings.TrimSpace(entity.Name)) < 1 {
 		sl.ReportError(entity.Name, "name", "name", "", "")
-	}
-
-	// check Plan
-	if len(strings.TrimSpace(entity.Plan)) > 1 {
-		if _, err := uuid.Parse(entity.Plan); err != nil {
-			sl.ReportError(entity.Plan, "Plan", "Plan", "", "")
-		}
 	}
 }
 
@@ -92,6 +75,7 @@ var (
 // Handler for controller REST API
 type Handler struct {
 	repo Repo
+	key  string
 }
 
 var (
