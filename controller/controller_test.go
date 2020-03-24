@@ -62,8 +62,18 @@ func (t *repoStruct) RemoveController(userId string, controllerId string) error 
 	return nil
 }
 
+func (t *repoStruct) GenerateToken(userId string, controllerId string, token string) error {
+	if controllerId == controller.ControllerId {
+		return nil
+	} else if controllerId == controller.UserId {
+		return controllerNotFound
+	}
+
+	return nil
+}
+
 // Handler struct for testing
-var handler = &Handler{repo: &repoStruct{}}
+var handler = &Handler{repo: &repoStruct{}, key: ""}
 
 // Setup func for handler testing
 func setUp() *gin.Engine {
@@ -308,7 +318,51 @@ func TestHandler_RemoveController(t *testing.T) {
 	for _, c := range testCases {
 		resp := httptest.NewRecorder()
 
-		req , _:= http.NewRequest(http.MethodDelete, c.in, nil)
+		req, _ := http.NewRequest(http.MethodDelete, c.in, nil)
+		engine.ServeHTTP(resp, req)
+
+		respBody := mapping{}
+		_ = json.Unmarshal(resp.Body.Bytes(), &respBody)
+
+		if c.code != resp.Code {
+			t.Fatalf("expected [%v], got = [%v]", c.code, resp.Code)
+		}
+
+		if c.message != respBody["message"] {
+			t.Fatalf("expected [%v], got = [%v]", c.message, respBody["message"])
+		}
+	}
+}
+
+// Test GenerateToken
+func TestGenerateToken(t *testing.T) {
+	engine := setUp()
+	engine.POST("/:controllerId/token", handler.GenerateToken)
+
+	testCases := []struct {
+		in      string
+		message string
+		code    int
+	}{
+		{
+			in:      controller.ControllerId,
+			message: resGenerate,
+			code:    http.StatusOK,
+		}, {
+			in:      controller.UserId,
+			message: resNotFound,
+			code:    http.StatusNotFound,
+		}, {
+			in:      "fewfe",
+			message: resInvalid,
+			code:    http.StatusBadRequest,
+		},
+	}
+
+	for _, c := range testCases {
+		resp := httptest.NewRecorder()
+
+		req, _ := http.NewRequest(http.MethodPost, c.in, nil)
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
