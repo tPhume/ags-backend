@@ -4,12 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/go-playground/validator.v9"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
+
+// For out test controller.ControllerId uuid indicate existing controller
+// Any other uuid will indicate missing controller - for 404 cases
+
+const goodHashedToken string = "f911ec3e7c28625729dd99f1ff27704e3f64f4aaaa4118fedd1e19c9df5f4c1a"
 
 var controller = Entity{
 	ControllerId: "f1d67e51-4ca4-4b25-a4b7-6c8f06822075",
@@ -72,8 +78,20 @@ func (t *repoStruct) GenerateToken(userId string, controllerId string, token str
 	return nil
 }
 
+func (t *repoStruct) VerifyToken(userId string, controllerId string, hashedToken string) error {
+	if controllerId != controller.ControllerId {
+		return controllerNotFound
+	}
+
+	if hashedToken != goodHashedToken {
+		return tokenIncorrect
+	}
+
+	return nil
+}
+
 // Handler struct for testing
-var handler = &Handler{repo: &repoStruct{}, key: ""}
+var handler = &Handler{repo: &repoStruct{}, key: "fake"}
 
 // Setup func for handler testing
 func setUp() *gin.Engine {
@@ -362,7 +380,59 @@ func TestGenerateToken(t *testing.T) {
 	for _, c := range testCases {
 		resp := httptest.NewRecorder()
 
-		req, _ := http.NewRequest(http.MethodPost, c.in + "/token", nil)
+		req, _ := http.NewRequest(http.MethodPost, c.in+"/token", nil)
+		engine.ServeHTTP(resp, req)
+
+		respBody := mapping{}
+		_ = json.Unmarshal(resp.Body.Bytes(), &respBody)
+
+		if c.code != resp.Code {
+			t.Fatalf("expected [%v], got = [%v]", c.code, resp.Code)
+		}
+
+		if c.message != respBody["message"] {
+			t.Fatalf("expected [%v], got = [%v]", c.message, respBody["message"])
+		}
+	}
+}
+
+// Test VerifyToken
+func TestVerifyToken(t *testing.T) {
+	engine := setUp()
+	engine.GET(":controllerId/:controllerToken", handler.VerifyToken)
+
+	testCases := []struct {
+		in      string
+		message string
+		code    int
+	}{
+		{
+			in:      fmt.Sprintf("%s/%s", controller.ControllerId, controller.ControllerId),
+			message: resVerifyOk,
+			code:    http.StatusOK,
+		}, {
+			in:      fmt.Sprintf("%s/%s", controller.UserId, controller.ControllerId),
+			message: resNotFound,
+			code:    http.StatusNotFound,
+		}, {
+			in:      fmt.Sprintf("%s/%s", controller.ControllerId, "fnjdslfnlk"),
+			message: resInvalid,
+			code:    http.StatusBadRequest,
+		}, {
+			in:      fmt.Sprintf("%s/%s", "dfwqfe", controller.ControllerId),
+			message: resInvalid,
+			code:    http.StatusBadRequest,
+		}, {
+			in:      fmt.Sprintf("%s/%s", controller.ControllerId, controller.UserId),
+			message: resVerifyIncorrect,
+			code:    http.StatusNotFound,
+		},
+	}
+
+	for _, c := range testCases {
+		resp := httptest.NewRecorder()
+
+		req, _ := http.NewRequest(http.MethodGet, c.in, nil)
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
