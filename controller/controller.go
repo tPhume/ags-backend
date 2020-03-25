@@ -5,6 +5,7 @@ package controller
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
@@ -71,12 +72,18 @@ type Repo interface {
 	// GenerateToken replaces the token (must be hashed prior) given the userId, controllerId and hashed token
 	// Missing controller will result in an error
 	GenerateToken(string, string, string) error
+
+	// VerifyToken checks the hashed token against the one it has in store
+	// If token does not match the hash it result in an error
+	// Missing controller will result in an error
+	VerifyToken(string, string, string) error
 }
 
 // Contains errors that implementation of Repo should use
 var (
 	duplicateName      = errors.New("duplicate name")
 	controllerNotFound = errors.New("controller not found")
+	tokenIncorrect     = errors.New("token incorrect")
 )
 
 // Handler for controller REST API
@@ -98,12 +105,14 @@ var (
 	resUpdate   = "controller updated"
 	resRemove   = "controller removed"
 	resGenerate = "controller's token generated"
+	resVerifyOk = "token is correct"
 
 	// error message responses for handler
-	resInternal = "not your fault, don't worry"
-	resInvalid  = "invalid values"
-	resDup      = "duplicate name"
-	resNotFound = "not found"
+	resInternal        = "not your fault, don't worry"
+	resInvalid         = "invalid values"
+	resDup             = "duplicate name"
+	resNotFound        = "not found"
+	resVerifyIncorrect = "token incorrect"
 )
 
 func (h *Handler) AddController(ctx *gin.Context) {
@@ -313,7 +322,7 @@ func (h *Handler) GenerateToken(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
-	hashedToken := string(hash.Sum(nil))
+	hashedToken := hex.EncodeToString(hash.Sum(nil))
 
 	if err := h.repo.GenerateToken(userId, controllerId, hashedToken); err != nil {
 		if err == controllerNotFound {
@@ -326,6 +335,59 @@ func (h *Handler) GenerateToken(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": resGenerate, "token_id": tokenId})
+}
+
+func (h *Handler) VerifyToken(ctx *gin.Context) {
+	userId, err := getUserId(ctx)
+	if err != nil {
+		if err == badFormat {
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	// check controllerId
+	controllerId := ctx.Param("controllerId")
+	if _, err := uuid.Parse(controllerId); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	// check controllerToken
+	controllerToken := ctx.Param("controllerToken")
+	if _, err := uuid.Parse(controllerToken); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	// find hash of controllerToken
+	hash := hmac.New(sha256.New, []byte(h.key))
+
+	if _, err := io.WriteString(hash, controllerToken); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+	hashedToken := hex.EncodeToString(hash.Sum(nil))
+
+	if err := h.repo.VerifyToken(userId, controllerId, hashedToken); err != nil {
+		if err == controllerNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
+			return
+		}
+
+		if err == tokenIncorrect {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": resVerifyIncorrect})
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": resVerifyOk})
 }
 
 // Utility functions that makes life somewhat easier
