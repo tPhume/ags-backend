@@ -23,5 +23,5 @@
 *.env
 
 # docker compose volume
-volume/controller/mongo/*
-!volume/controller/mongo/.keep
+volume/mongo/*
+!volume/mongo/.keep
