@@ -6,14 +6,12 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"gopkg.in/go-playground/validator.v9"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -24,26 +22,27 @@ type mapping map[string]interface{}
 type Entity struct {
 	ControllerId string `json:"controller_id"`
 	UserId       string
-	Name         string `json:"name"`
+	Name         string `json:"name" binding:"required,name"`
 	Desc         string `json:"desc"`
 	Plan         string `json:"plan"`
 }
 
-// Custom Controller type struct validation function
-func StructValidation(sl validator.StructLevel) {
-	entity := sl.Current().Interface().(Entity)
-
-	// checks Name
-	if len(strings.TrimSpace(entity.Name)) < 1 {
-		sl.ReportError(entity.Name, "name", "name", "", "")
-	}
+// addStructValidation register StructValidation function to Gin's default validator Engine
+func addValidation() {
+	v := binding.Validator.Engine().(*validator.Validate)
+	_ = v.RegisterValidation("name", NameValidation)
 }
 
-// addStructValidation register StructValidation function to Gin's default validator Engine
-func addStructValidation(engine *gin.Engine) {
-	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterStructValidation(StructValidation, Entity{})
+// Field level validation
+func NameValidation(fl validator.FieldLevel) bool {
+	field := fl.Field()
+
+	value := field.String()
+	if strings.TrimSpace(value) == "" {
+		return false
 	}
+
+	return true
 }
 
 // Controller Repo - interface to communicate with data source
@@ -60,9 +59,8 @@ type Repo interface {
 	// Return of nil value for *Entity indicates error
 	GetController(*Entity) error
 
-	// UpdateController does partial update given *Controller type and some value to update (mapping)
-	// No new controller is created if controller is not found
-	UpdateController(mapping) (*Entity, error)
+	// UpdateController replaces the controller given Entity object
+	UpdateController(*Entity) error
 
 	// RemoveController deletes data from data source given ControllerId
 	// Cascade deletion is done asynchronously
@@ -225,32 +223,21 @@ func (h *Handler) UpdateController(ctx *gin.Context) {
 		return
 	}
 
-	// extract request body from context
-	reqBody, err := ioutil.ReadAll(ctx.Request.Body)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
-		return
+	// Bind body to Entity object
+	entity := &Entity{
+		ControllerId: controllerId,
+		UserId:       userId,
 	}
 
-	// unmarshal to map
-	updateMap := make(mapping)
-	if err = json.Unmarshal(reqBody, &updateMap); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
-		return
-	}
-
-	// addUserId and controllerId
-	updateMap["userId"] = userId
-	updateMap["controllerId"] = controllerId
-
-	if err = checkUpdateMap(updateMap); err != nil {
+	if err = ctx.ShouldBindJSON(entity); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		return
 	}
 
+	entity.Name = strings.TrimSpace(entity.Name)
+
 	// use repo to call external data source
-	entity, err := h.repo.UpdateController(updateMap)
-	if err != nil {
+	if err = h.repo.UpdateController(entity); err != nil {
 		if err == controllerNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
 		} else {
@@ -266,11 +253,6 @@ func (h *Handler) UpdateController(ctx *gin.Context) {
 func (h *Handler) RemoveController(ctx *gin.Context) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		if err == badFormat {
-			ctx.JSON(http.StatusBadRequest, resInvalid)
-			return
-		}
-
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
@@ -298,11 +280,6 @@ func (h *Handler) RemoveController(ctx *gin.Context) {
 func (h *Handler) GenerateToken(ctx *gin.Context) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		if err == badFormat {
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
-			return
-		}
-
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
@@ -340,11 +317,6 @@ func (h *Handler) GenerateToken(ctx *gin.Context) {
 func (h *Handler) VerifyToken(ctx *gin.Context) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		if err == badFormat {
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
-			return
-		}
-
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
@@ -390,41 +362,6 @@ func (h *Handler) VerifyToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": resVerifyOk})
 }
 
-// Utility functions that makes life somewhat easier
-// Helper function to check map for update
-func checkUpdateMap(updateMap mapping) error {
-	if v, exist := updateMap["name"]; exist {
-		s, ok := v.(string)
-		if !ok {
-			return badFormat
-		}
-
-		if len(strings.TrimSpace(s)) < 1 {
-			return badFormat
-		}
-	}
-
-	if v, exist := updateMap["desc"]; exist {
-		_, ok := v.(string)
-		if !ok {
-			return badFormat
-		}
-	}
-
-	if v, exist := updateMap["name"]; exist {
-		s, ok := v.(string)
-		if !ok {
-			return badFormat
-		}
-
-		if _, err := uuid.Parse(s); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // Helper function that returns userId from context
 func getUserId(ctx *gin.Context) (string, error) {
 	// get userId
@@ -436,10 +373,6 @@ func getUserId(ctx *gin.Context) (string, error) {
 	userId, ok := v.(string)
 	if !ok {
 		return "", castingFail
-	}
-
-	if _, err := uuid.Parse(userId); err != nil {
-		return "", badFormat
 	}
 
 	return userId, nil

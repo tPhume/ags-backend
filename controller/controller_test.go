@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/go-playground/validator.v9"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -50,12 +49,12 @@ func (t *repoStruct) GetController(entity *Entity) error {
 	return controllerNotFound
 }
 
-func (t *repoStruct) UpdateController(updateMap mapping) (*Entity, error) {
-	if updateMap["controllerId"] == controller.ControllerId {
-		return nil, nil
+func (t *repoStruct) UpdateController(entity *Entity) error {
+	if entity.ControllerId == controller.ControllerId {
+		return nil
 	}
 
-	return nil, controllerNotFound
+	return controllerNotFound
 }
 
 func (t *repoStruct) RemoveController(userId string, controllerId string) error {
@@ -98,7 +97,7 @@ func setUp() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	engine := gin.New()
 
-	addStructValidation(engine)
+	addValidation()
 	engine.Use(func(context *gin.Context) {
 		context.Set("userId", controller.UserId)
 	})
@@ -106,15 +105,6 @@ func setUp() *gin.Engine {
 	return engine
 }
 
-// Test Entity Struct validation
-func TestStructValidation(t *testing.T) {
-	v := validator.New()
-	v.RegisterStructValidation(StructValidation, Entity{})
-
-	if err := v.Struct(controller); err != nil {
-		t.Fatal(err)
-	}
-}
 
 // Test AddControllers handler
 func TestHandler_AddController(t *testing.T) {
@@ -153,22 +143,22 @@ func TestHandler_AddController(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
+	for i, c := range testCases {
 		resp := httptest.NewRecorder()
 
 		body, _ := json.Marshal(c.in)
-		req, _ := http.NewRequest(http.MethodPost, "", bytes.NewReader(body))
+		req, _ := http.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
 		_ = json.Unmarshal(resp.Body.Bytes(), &respBody)
 
 		if c.code != resp.Code {
-			t.Fatalf("expected [%v], got = [%v]", c.code, resp.Code)
+			t.Fatalf("Case %d: expected [%v], got = [%v]", i, c.code, resp.Code)
 		}
 
 		if c.message != respBody["message"] {
-			t.Fatalf("expected [%v], got = [%v]", c.message, respBody["message"])
+			t.Fatalf("Case %d: expected [%v], got = [%v]", i, c.message, respBody["message"])
 		}
 	}
 }
@@ -191,7 +181,7 @@ func TestHandler_ListControllers(t *testing.T) {
 	for _, c := range testCases {
 		resp := httptest.NewRecorder()
 
-		req, _ := http.NewRequest(http.MethodGet, "", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
@@ -240,7 +230,7 @@ func TestHandler_GetController(t *testing.T) {
 		resp := httptest.NewRecorder()
 
 		body, _ := json.Marshal(c.in)
-		req, _ := http.NewRequest(http.MethodGet, c.controllerId, bytes.NewReader(body))
+		req, _ := http.NewRequest(http.MethodGet, "/"+c.controllerId, bytes.NewReader(body))
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
@@ -280,11 +270,10 @@ func TestHandler_UpdateController(t *testing.T) {
 			message: resInvalid,
 			code:    http.StatusBadRequest,
 		}, {
-			in:
-			controller.UserId,
-			body:    mapping{"Desc": "GoodDesc"},
-			message: resNotFound,
-			code:    http.StatusNotFound,
+			in:      controller.ControllerId,
+			body:    mapping{"Name": "", "Desc": "GoodDesc"},
+			message: resInvalid,
+			code:    http.StatusBadRequest,
 		},
 	}
 
@@ -292,7 +281,7 @@ func TestHandler_UpdateController(t *testing.T) {
 		resp := httptest.NewRecorder()
 
 		body, _ := json.Marshal(c.body)
-		req, _ := http.NewRequest(http.MethodPatch, c.in, bytes.NewReader(body))
+		req, _ := http.NewRequest(http.MethodPatch, "/"+c.in, bytes.NewReader(body))
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
@@ -336,7 +325,7 @@ func TestHandler_RemoveController(t *testing.T) {
 	for _, c := range testCases {
 		resp := httptest.NewRecorder()
 
-		req, _ := http.NewRequest(http.MethodDelete, c.in, nil)
+		req, _ := http.NewRequest(http.MethodDelete, "/"+c.in, nil)
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
@@ -380,7 +369,7 @@ func TestGenerateToken(t *testing.T) {
 	for _, c := range testCases {
 		resp := httptest.NewRecorder()
 
-		req, _ := http.NewRequest(http.MethodPost, c.in+"/token", nil)
+		req, _ := http.NewRequest(http.MethodPost, "/"+c.in+"/token", nil)
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
@@ -407,23 +396,23 @@ func TestVerifyToken(t *testing.T) {
 		code    int
 	}{
 		{
-			in:      fmt.Sprintf("%s/%s", controller.ControllerId, controller.ControllerId),
+			in:      fmt.Sprintf("/%s/%s", controller.ControllerId, controller.ControllerId),
 			message: resVerifyOk,
 			code:    http.StatusOK,
 		}, {
-			in:      fmt.Sprintf("%s/%s", controller.UserId, controller.ControllerId),
+			in:      fmt.Sprintf("/%s/%s", controller.UserId, controller.ControllerId),
 			message: resNotFound,
 			code:    http.StatusNotFound,
 		}, {
-			in:      fmt.Sprintf("%s/%s", controller.ControllerId, "fnjdslfnlk"),
+			in:      fmt.Sprintf("/%s/%s", controller.ControllerId, "fnjdslfnlk"),
 			message: resInvalid,
 			code:    http.StatusBadRequest,
 		}, {
-			in:      fmt.Sprintf("%s/%s", "dfwqfe", controller.ControllerId),
+			in:      fmt.Sprintf("/%s/%s", "dfwqfe", controller.ControllerId),
 			message: resInvalid,
 			code:    http.StatusBadRequest,
 		}, {
-			in:      fmt.Sprintf("%s/%s", controller.ControllerId, controller.UserId),
+			in:      fmt.Sprintf("/%s/%s", controller.ControllerId, controller.UserId),
 			message: resVerifyIncorrect,
 			code:    http.StatusNotFound,
 		},
