@@ -26,7 +26,13 @@ func (r *repoStruct) CreateSession(ctx context.Context, userEntity *UserEntity, 
 }
 
 func (r *repoStruct) DeleteSession(ctx context.Context, sessionId string) error {
-	return nil
+	if sessionId == goodSessionId {
+		return nil
+	} else if sessionId == badSessionId {
+		return errNotFound
+	}
+
+	return errors.New("some internal error")
 }
 
 func (r *repoStruct) GetSession(ctx context.Context, sessionId string) (string, error) {

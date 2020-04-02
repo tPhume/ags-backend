@@ -50,6 +50,8 @@ type Repo interface {
 	GetSession(context.Context, string) (string, error)
 }
 
+var errNotFound = errors.New("session not found")
+
 // GoogleRepo interacts with google api
 type GoogleRepo interface {
 	GetIdToken(string, *UserEntity) error
@@ -107,7 +109,23 @@ func (h *Handler) CreateSession(ctx *gin.Context) {
 
 // DeleteSession will delete the session cookie
 func (h *Handler) DeleteSession(ctx *gin.Context) {
+	sessionId, err := ctx.Cookie("sessionId")
+	if err != nil || strings.TrimSpace(sessionId) == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
 
+	if err = h.repo.DeleteSession(ctx, sessionId); err != nil {
+		if err == errNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		}
+
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": resDelete})
 }
 
 // GetSession is the middleware that will check the session cookie from request
