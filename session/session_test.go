@@ -14,6 +14,9 @@ import (
 const (
 	goodCode = "good code"
 	badCode  = "bad code"
+
+	goodSessionId = "good sessionId"
+	badSessionId  = "bad sessionId"
 )
 
 type repoStruct struct{}
@@ -42,7 +45,7 @@ func (g *googleRepoStruct) GetIdToken(code string, entity *UserEntity) error {
 	return errors.New("some internal error")
 }
 
-var handler = &Handler{repo: &repoStruct{}, googleRepo: &googleRepoStruct{}}
+var handler = &Handler{repo: &repoStruct{}, googleRepo: &googleRepoStruct{}, domain: "testing"}
 
 func setUp() *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -103,7 +106,59 @@ func TestHandler_CreateSession(t *testing.T) {
 }
 
 func TestHandler_DeleteSession(t *testing.T) {
+	engine := setUp()
+	engine.DELETE("", handler.DeleteSession)
 
+	testCases := []struct {
+		in      string
+		message string
+		code    int
+	}{
+		{
+			in:      goodSessionId,
+			message: resDelete,
+			code:    http.StatusOK,
+		}, {
+			in:      badSessionId,
+			message: resNotFound,
+			code:    http.StatusNotFound,
+		}, {
+			in:      "",
+			message: resInvalid,
+			code:    http.StatusBadRequest,
+		}, {
+			in:      "some internal error",
+			message: resInternal,
+			code:    http.StatusInternalServerError,
+		},
+	}
+
+	for i, c := range testCases {
+		cookie := &http.Cookie{
+			Name:   "sessionId",
+			Value:  c.in,
+			Path:   "/",
+			Domain: handler.domain,
+		}
+
+		resp := httptest.NewRecorder()
+
+		req, _ := http.NewRequest(http.MethodDelete, "/", nil)
+		req.AddCookie(cookie)
+
+		engine.ServeHTTP(resp, req)
+
+		respBody := mapping{}
+		_ = json.Unmarshal(resp.Body.Bytes(), &respBody)
+
+		if c.code != resp.Code {
+			t.Fatalf("Case %d: expected [%v], got = [%v]", i, c.code, resp.Code)
+		}
+
+		if c.message != respBody["message"] {
+			t.Fatalf("Case %d: expected [%v], got = [%v]", i, c.message, respBody["message"])
+		}
+	}
 }
 
 func TestHandler_GetSession(t *testing.T) {
