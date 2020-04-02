@@ -29,7 +29,13 @@ func (r *repoStruct) GetSession(ctx context.Context, sessionId string) (string, 
 	return "", nil
 }
 
-var handler = &Handler{repo: &repoStruct{}}
+type googleRepoStruct struct{}
+
+func (g *googleRepoStruct) GetIdToken(string) error {
+	return nil
+}
+
+var handler = &Handler{repo: &repoStruct{}, googleRepo: &googleRepoStruct{}}
 
 func setUp() *gin.Engine {
 	gin.SetMode(gin.TestMode)

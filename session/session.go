@@ -25,9 +25,25 @@ type Repo interface {
 	GetSession(context.Context, string) (string, error)
 }
 
+// GoogleRepo interacts with google api
+type GoogleRepo interface {
+	GetIdToken(string) error
+}
+
+// Handler message responses
+const (
+	resCreate = "session created"
+	resDelete = "session deleted"
+
+	resInvalid  = "bad format"
+	resInternal = "not your fault, internal error"
+	resNotAuth  = "not authorized"
+)
+
 // Handler stores Repo type that interacts with data source
 type Handler struct {
-	repo Repo
+	repo       Repo
+	googleRepo GoogleRepo
 }
 
 // CreateSession takes an exchange token and set cookie
