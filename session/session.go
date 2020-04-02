@@ -6,6 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
+	"net/http"
 	"strings"
 )
 
@@ -50,7 +52,7 @@ type Repo interface {
 
 // GoogleRepo interacts with google api
 type GoogleRepo interface {
-	GetIdToken(string) error
+	GetIdToken(string, *UserEntity) error
 }
 
 var errBadCode = errors.New("bad access_code")
@@ -67,6 +69,7 @@ const (
 
 // Handler stores Repo type that interacts with data source
 type Handler struct {
+	domain     string
 	repo       Repo
 	googleRepo GoogleRepo
 }
@@ -74,7 +77,31 @@ type Handler struct {
 // CreateSession takes an exchange token and set cookie
 // Return body includes user information
 func (h *Handler) CreateSession(ctx *gin.Context) {
+	request := &CreateRequest{}
+	if err := ctx.ShouldBindJSON(request); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
 
+	userEntity := &UserEntity{}
+	if err := h.googleRepo.GetIdToken(request.AccessCode, userEntity); err != nil {
+		if err == errBadCode {
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		}
+
+		return
+	}
+
+	sessionId := uuid.New().String()
+	if err := h.repo.CreateSession(ctx, userEntity, sessionId); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"message": resCreate})
+	ctx.SetCookie("sessionId", sessionId, 28800, "/", h.domain, false, true)
 }
 
 // DeleteSession will delete the session cookie

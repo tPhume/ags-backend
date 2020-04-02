@@ -32,7 +32,7 @@ func (r *repoStruct) GetSession(ctx context.Context, sessionId string) (string, 
 
 type googleRepoStruct struct{}
 
-func (g *googleRepoStruct) GetIdToken(code string) error {
+func (g *googleRepoStruct) GetIdToken(code string, entity *UserEntity) error {
 	if code == goodCode {
 		return nil
 	} else if code == badCode {
