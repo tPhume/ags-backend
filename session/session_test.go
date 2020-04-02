@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/http/httptest"
@@ -31,8 +32,14 @@ func (r *repoStruct) GetSession(ctx context.Context, sessionId string) (string, 
 
 type googleRepoStruct struct{}
 
-func (g *googleRepoStruct) GetIdToken(string) error {
-	return nil
+func (g *googleRepoStruct) GetIdToken(code string) error {
+	if code == goodCode {
+		return nil
+	} else if code == badCode {
+		return errBadCode
+	}
+
+	return errors.New("some internal error")
 }
 
 var handler = &Handler{repo: &repoStruct{}, googleRepo: &googleRepoStruct{}}
@@ -63,6 +70,10 @@ func TestHandler_CreateSession(t *testing.T) {
 			in:      mapping{"access_code": ""},
 			message: resInvalid,
 			code:    http.StatusBadRequest,
+		}, {
+			in:      mapping{"access_code": "some internal error"},
+			message: resInternal,
+			code:    http.StatusInternalServerError,
 		},
 	}
 

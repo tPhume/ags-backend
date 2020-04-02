@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"errors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,6 +30,8 @@ type Repo interface {
 type GoogleRepo interface {
 	GetIdToken(string) error
 }
+
+var errBadCode = errors.New("bad access_code")
 
 // Handler message responses
 const (
