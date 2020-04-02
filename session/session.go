@@ -5,6 +5,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type mapping map[string]interface{}
+
 // Represent a user
 type UserEntity struct {
 	UserId        string `json:"user_id"`
