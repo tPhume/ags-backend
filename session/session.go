@@ -47,7 +47,7 @@ type Repo interface {
 
 	DeleteSession(context.Context, string) error
 
-	GetSession(context.Context, string) (string, error)
+	GetUser(context.Context, string) (string, error)
 }
 
 var errNotFound = errors.New("session not found")
@@ -130,6 +130,6 @@ func (h *Handler) DeleteSession(ctx *gin.Context) {
 
 // GetSession is the middleware that will check the session cookie from request
 // It then sets the userId in context
-func (h *Handler) GetSession(ctx *gin.Context) {
+func (h *Handler) GetUser(ctx *gin.Context) {
 
 }

@@ -35,8 +35,13 @@ func (r *repoStruct) DeleteSession(ctx context.Context, sessionId string) error 
 	return errors.New("some internal error")
 }
 
-func (r *repoStruct) GetSession(ctx context.Context, sessionId string) (string, error) {
-	return "", nil
+func (r *repoStruct) GetUser(ctx context.Context, sessionId string) (string, error) {
+	if sessionId == goodSessionId {
+		return sessionId, nil
+	} else if sessionId == badSessionId {
+		return "", errNotFound
+	}
+	return "", errors.New("some internal error or something")
 }
 
 type googleRepoStruct struct{}
@@ -167,6 +172,62 @@ func TestHandler_DeleteSession(t *testing.T) {
 	}
 }
 
-func TestHandler_GetSession(t *testing.T) {
+func TestHandler_GetUser(t *testing.T) {
+	engine := setUp()
+	engine.Use(handler.GetUser)
+	engine.GET("", func(ctx *gin.Context) {
+		userId := ctx.GetString("userId")
+		ctx.JSON(http.StatusOK, gin.H{"message": userId})
+	})
 
+	testCases := []struct {
+		in      string
+		message string
+		code    int
+	}{
+		{
+			in:      goodSessionId,
+			message: goodSessionId,
+			code:    http.StatusOK,
+		}, {
+			in:      badSessionId,
+			message: resNotAuth,
+			code:    http.StatusUnauthorized,
+		}, {
+			in:      "",
+			message: resNotAuth,
+			code:    http.StatusUnauthorized,
+		}, {
+			in:      "internal error",
+			message: resInternal,
+			code:    http.StatusInternalServerError,
+		},
+	}
+
+	for i, c := range testCases {
+		cookie := &http.Cookie{
+			Name:   "sessionId",
+			Value:  c.in,
+			Path:   "/",
+			Domain: handler.domain,
+		}
+
+		resp := httptest.NewRecorder()
+
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		req.AddCookie(cookie)
+
+		engine.ServeHTTP(resp, req)
+
+		respBody := mapping{}
+		_ = json.Unmarshal(resp.Body.Bytes(), &respBody)
+
+		if c.code != resp.Code {
+			t.Fatalf("Case %d: expected [%v], got = [%v]", i, c.code, resp.Code)
+		}
+
+		if c.message != respBody["message"] {
+			t.Fatalf("Case %d: expected [%v], got = [%v]", i, c.message, respBody["message"])
+		}
+	}
 }
