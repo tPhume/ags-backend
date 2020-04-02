@@ -1,0 +1,14 @@
+version: '3.7'
+services:
+  controller-mongo:
+    container_name: ags-mongo
+    image: mongo:4.2.3
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=username
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - type: bind
+        source: ./volume/mongo
+        target: /data/db
+    ports:
+      - "27017:27017"
