@@ -131,5 +131,22 @@ func (h *Handler) DeleteSession(ctx *gin.Context) {
 // GetSession is the middleware that will check the session cookie from request
 // It then sets the userId in context
 func (h *Handler) GetUser(ctx *gin.Context) {
+	sessionId, err := ctx.Cookie("sessionId")
+	if err != nil || strings.TrimSpace(sessionId) == "" {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": resNotAuth})
+		return
+	}
 
+	userId, err := h.repo.GetUser(ctx, sessionId)
+	if err != nil {
+		if err == errNotFound {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": resNotAuth})
+		} else {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		}
+
+		return
+	}
+
+	ctx.Set("userId", userId)
 }
