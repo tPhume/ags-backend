@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
+	"strings"
 )
 
 type mapping map[string]interface{}
@@ -15,6 +18,25 @@ type UserEntity struct {
 	EmailVerified bool   `json:"email_verified"`
 	Name          string `json:"name"`
 	Picture       string `json:"picture"`
+}
+
+// To be bind for create request
+type CreateRequest struct {
+	AccessCode string `json:"access_code" binding:"accessCode"`
+}
+
+// field level validation
+func AccessCodeValidation(fl validator.FieldLevel) bool {
+	if strings.TrimSpace(fl.Field().String()) == "" {
+		return false
+	}
+
+	return true
+}
+
+func AddValidation() {
+	validate := binding.Validator.Engine().(*validator.Validate)
+	_ = validate.RegisterValidation("accessCode", AccessCodeValidation)
 }
 
 // Repo type interacts with data source that has session database

@@ -46,7 +46,11 @@ var handler = &Handler{repo: &repoStruct{}, googleRepo: &googleRepoStruct{}}
 
 func setUp() *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	return gin.New()
+
+	AddValidation()
+	engine := gin.New()
+
+	return engine
 }
 
 func TestHandler_CreateSession(t *testing.T) {
