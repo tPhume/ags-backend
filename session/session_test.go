@@ -46,7 +46,7 @@ func (r *repoStruct) GetUser(ctx context.Context, sessionId string) (string, err
 
 type googleRepoStruct struct{}
 
-func (g *googleRepoStruct) GetIdToken(code string, entity *UserEntity) error {
+func (g *googleRepoStruct) GetIdToken(ctx context.Context, code string, entity *UserEntity) error {
 	if code == goodCode {
 		return nil
 	} else if code == badCode {

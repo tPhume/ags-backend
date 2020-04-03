@@ -54,7 +54,7 @@ var errNotFound = errors.New("session not found")
 
 // GoogleRepo interacts with google api
 type GoogleRepo interface {
-	GetIdToken(string, *UserEntity) error
+	GetIdToken(context.Context, string, *UserEntity) error
 }
 
 var errBadCode = errors.New("bad access_code")
