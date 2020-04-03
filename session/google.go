@@ -10,17 +10,17 @@ import (
 )
 
 type GoogleApi struct {
-	clientId     string
-	clientSecret string
-	redirectUri  string
+	ClientId     string
+	ClientSecret string
+	RedirectUri  string
 }
 
 func (g *GoogleApi) GetIdToken(ctx context.Context, code string, userEntity *UserEntity) error {
 	values := url.Values{}
 	values.Add("code", code)
-	values.Add("client_id", g.clientId)
-	values.Add("client_secret", g.clientSecret)
-	values.Add("redirect_uri", g.redirectUri)
+	values.Add("client_id", g.ClientId)
+	values.Add("client_secret", g.ClientSecret)
+	values.Add("redirect_uri", g.RedirectUri)
 	values.Add("grant_type", "authorization_code")
 
 	resp, err := http.PostForm("https://oauth2.googleapis.com/token", values)

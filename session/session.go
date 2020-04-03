@@ -87,7 +87,7 @@ func (h *Handler) CreateSession(ctx *gin.Context) {
 	}
 
 	userEntity := &UserEntity{}
-	if err := h.googleRepo.GetIdToken(request.AccessCode, userEntity); err != nil {
+	if err := h.googleRepo.GetIdToken(ctx, request.AccessCode, userEntity); err != nil {
 		if err == errBadCode {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		} else {
