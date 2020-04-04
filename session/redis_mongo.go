@@ -32,11 +32,15 @@ func (r *RedisMongo) CreateSession(ctx context.Context, userEntity *UserEntity, 
 		return err
 	}
 
-	
 	return nil
 }
 
 func (r *RedisMongo) DeleteSession(ctx context.Context, sessionId string) error {
+	// Delete session
+	if err := r.sessionDb.Del(sessionId).Err(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

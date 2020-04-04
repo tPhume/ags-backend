@@ -116,12 +116,7 @@ func (h *Handler) DeleteSession(ctx *gin.Context) {
 	}
 
 	if err = h.repo.DeleteSession(ctx, sessionId); err != nil {
-		if err == errNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
-		}
-
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
 

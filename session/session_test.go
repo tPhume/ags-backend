@@ -28,8 +28,6 @@ func (r *repoStruct) CreateSession(ctx context.Context, userEntity *UserEntity, 
 func (r *repoStruct) DeleteSession(ctx context.Context, sessionId string) error {
 	if sessionId == goodSessionId {
 		return nil
-	} else if sessionId == badSessionId {
-		return errNotFound
 	}
 
 	return errors.New("some internal error")
@@ -129,10 +127,6 @@ func TestHandler_DeleteSession(t *testing.T) {
 			in:      goodSessionId,
 			message: resDelete,
 			code:    http.StatusOK,
-		}, {
-			in:      badSessionId,
-			message: resNotFound,
-			code:    http.StatusNotFound,
 		}, {
 			in:      "",
 			message: resInvalid,
