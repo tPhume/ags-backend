@@ -1,6 +1,6 @@
 version: '3.7'
 services:
-  controller-mongo:
+  mongo:
     container_name: ags-mongo
     image: mongo:4.2.3
     environment:
@@ -12,3 +12,9 @@ services:
         target: /data/db
     ports:
       - "27017:27017"
+
+  redis:
+    container_name: ags-redis
+    image: redis:5.0.8
+    ports:
+      - "6379:6379"
