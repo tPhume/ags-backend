@@ -45,5 +45,14 @@ func (r *RedisMongo) DeleteSession(ctx context.Context, sessionId string) error 
 }
 
 func (r *RedisMongo) GetUser(ctx context.Context, sessionId string) (string, error) {
-	return "", nil
+	res := r.sessionDb.Get(sessionId)
+	if res.Err() != nil {
+		if res.Err() == redis.Nil {
+			return "", errNotFound
+		}
+
+		return "", res.Err()
+	}
+
+	return res.String(), nil
 }
