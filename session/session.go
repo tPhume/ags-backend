@@ -13,6 +13,14 @@ import (
 
 type mapping map[string]interface{}
 
+func RegisterRoutes(handler *Handler, engine *gin.Engine) {
+	AddValidation()
+
+	group := engine.Group("api/v1/session")
+	group.POST("", handler.CreateSession)
+	group.DELETE("", handler.DeleteSession)
+}
+
 // Represent a user
 type UserEntity struct {
 	UserId        string `json:"user_id"`
@@ -71,9 +79,9 @@ const (
 
 // Handler stores Repo type that interacts with data source
 type Handler struct {
-	domain     string
-	repo       Repo
-	googleRepo GoogleRepo
+	Domain     string
+	Repo       Repo
+	GoogleRepo GoogleRepo
 }
 
 // CreateSession takes an exchange token and set cookie
@@ -86,24 +94,24 @@ func (h *Handler) CreateSession(ctx *gin.Context) {
 	}
 
 	userEntity := &UserEntity{}
-	if err := h.googleRepo.GetIdToken(ctx, request.AccessCode, userEntity); err != nil {
+	if err := h.GoogleRepo.GetIdToken(ctx, request.AccessCode, userEntity); err != nil {
 		if err == errBadCode {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal, "details": "google exchange"})
 		}
 
 		return
 	}
 
 	sessionId := uuid.New().String()
-	if err := h.repo.CreateSession(ctx, userEntity, sessionId); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+	if err := h.Repo.CreateSession(ctx, userEntity, sessionId); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal, "details": err})
 		return
 	}
 
+	ctx.SetCookie("sessionId", sessionId, 28800, "/", h.Domain, false, true)
 	ctx.JSON(http.StatusCreated, gin.H{"message": resCreate})
-	ctx.SetCookie("sessionId", sessionId, 28800, "/", h.domain, false, true)
 }
 
 // DeleteSession will delete the session cookie
@@ -114,11 +122,12 @@ func (h *Handler) DeleteSession(ctx *gin.Context) {
 		return
 	}
 
-	if err = h.repo.DeleteSession(ctx, sessionId); err != nil {
+	if err = h.Repo.DeleteSession(ctx, sessionId); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
 
+	ctx.SetCookie("sessionId", "", 28800, "/", h.Domain, false, true)
 	ctx.JSON(http.StatusOK, gin.H{"message": resDelete})
 }
 
@@ -131,7 +140,7 @@ func (h *Handler) GetUser(ctx *gin.Context) {
 		return
 	}
 
-	userId, err := h.repo.GetUser(ctx, sessionId)
+	userId, err := h.Repo.GetUser(ctx, sessionId)
 	if err != nil {
 		if err == errNotFound {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": resNotAuth})

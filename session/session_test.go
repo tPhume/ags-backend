@@ -54,7 +54,7 @@ func (g *googleRepoStruct) GetIdToken(ctx context.Context, code string, entity *
 	return errors.New("some internal error")
 }
 
-var handler = &Handler{repo: &repoStruct{}, googleRepo: &googleRepoStruct{}, domain: "testing"}
+var handler = &Handler{Repo: &repoStruct{}, GoogleRepo: &googleRepoStruct{}, Domain: "testing"}
 
 func setUp() *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -143,7 +143,7 @@ func TestHandler_DeleteSession(t *testing.T) {
 			Name:   "sessionId",
 			Value:  c.in,
 			Path:   "/",
-			Domain: handler.domain,
+			Domain: handler.Domain,
 		}
 
 		resp := httptest.NewRecorder()
@@ -203,7 +203,7 @@ func TestHandler_GetUser(t *testing.T) {
 			Name:   "sessionId",
 			Value:  c.in,
 			Path:   "/",
-			Domain: handler.domain,
+			Domain: handler.Domain,
 		}
 
 		resp := httptest.NewRecorder()
