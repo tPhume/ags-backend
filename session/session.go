@@ -66,7 +66,6 @@ const (
 
 	resInvalid  = "bad format"
 	resInternal = "not your fault, internal error"
-	resNotFound = "session id not found"
 	resNotAuth  = "not authorized"
 )
 
