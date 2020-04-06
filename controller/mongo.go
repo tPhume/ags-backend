@@ -35,8 +35,29 @@ func (m MongoRepo) AddController(ctx context.Context, entity *Entity) error {
 	return nil
 }
 
-func (m MongoRepo) ListControllers(string) ([]*Entity, error) {
-	panic("implement me")
+func (m MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Entity, error) {
+	cursor, err := m.col.Find(ctx, bson.M{"userId": userId})
+	if err != nil {
+		return nil, err
+	}
+
+	entities := make([]*Entity, 0)
+
+	for cursor.Next(ctx) {
+		result := &Result{}
+		if err := cursor.Decode(result); err != nil {
+			return nil, err
+		}
+
+		entities = append(entities, &Entity{
+			ControllerId: result.ControllerId,
+			Name:         result.Name,
+			Desc:         result.Desc,
+			Plan:         result.Plan,
+		})
+	}
+
+	return entities, nil
 }
 
 func (m MongoRepo) GetController(*Entity) error {
@@ -57,4 +78,11 @@ func (m MongoRepo) GenerateToken(string, string, string) error {
 
 func (m MongoRepo) VerifyToken(string, string, string) error {
 	panic("implement me")
+}
+
+type Result struct {
+	ControllerId string `json:"_id"`
+	Name         string `json:"name"`
+	Desc         string `json:"desc"`
+	Plan         string `json:"plan"`
 }
