@@ -128,7 +128,17 @@ func (m MongoRepo) RemoveController(ctx context.Context, userId string, controll
 }
 
 func (m MongoRepo) GenerateToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
-	panic("implement me")
+	if result := m.Col.FindOneAndUpdate(ctx, bson.M{"_id": controllerId, "userId": userId}, bson.M{
+		"$set": bson.M{"token": hashToken},
+	}); result.Err() != nil {
+		if result.Err() == mongo.ErrNoDocuments {
+			return controllerNotFound
+		}
+
+		return result.Err()
+	}
+
+	return nil
 }
 
 func (m MongoRepo) VerifyToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
