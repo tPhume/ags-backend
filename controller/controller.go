@@ -25,13 +25,14 @@ type Entity struct {
 	UserId       string
 	Name         string `json:"name" binding:"required,name"`
 	Desc         string `json:"desc"`
-	Plan         string `json:"plan"`
+	Plan         string `json:"plan" binding:"omitempty,controller_plan"`
 }
 
 // addStructValidation register StructValidation function to Gin's default validator Engine
 func addValidation() {
 	v := binding.Validator.Engine().(*validator.Validate)
 	_ = v.RegisterValidation("name", NameValidation)
+	_ = v.RegisterValidation("controller_plan", PlanValidation)
 }
 
 // Field level validation
@@ -40,6 +41,14 @@ func NameValidation(fl validator.FieldLevel) bool {
 
 	value := field.String()
 	if strings.TrimSpace(value) == "" {
+		return false
+	}
+
+	return true
+}
+
+func PlanValidation(fl validator.FieldLevel) bool {
+	if _, err := uuid.Parse(fl.Field().String()); err != nil {
 		return false
 	}
 
