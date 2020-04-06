@@ -25,7 +25,7 @@ type Entity struct {
 	UserId       string
 	Name         string `json:"name" binding:"required,name"`
 	Desc         string `json:"desc"`
-	Plan         string `json:"plan" binding:"omitempty,controller_plan"`
+	Plan         string `json:"plan" binding:"omitempty,uuid4"`
 }
 
 // VerifyToken request body
@@ -37,7 +37,6 @@ type VerifyToken struct {
 func addValidation() {
 	v := binding.Validator.Engine().(*validator.Validate)
 	_ = v.RegisterValidation("name", NameValidation)
-	_ = v.RegisterValidation("controller_plan", PlanValidation)
 }
 
 // Field level validation
@@ -46,14 +45,6 @@ func NameValidation(fl validator.FieldLevel) bool {
 
 	value := field.String()
 	if strings.TrimSpace(value) == "" {
-		return false
-	}
-
-	return true
-}
-
-func PlanValidation(fl validator.FieldLevel) bool {
-	if _, err := uuid.Parse(fl.Field().String()); err != nil {
 		return false
 	}
 
@@ -99,10 +90,18 @@ var (
 	tokenIncorrect     = errors.New("token incorrect")
 )
 
+// PlanRepo
+type PlanRepo interface {
+	PlanExist(context.Context, string, string) error
+}
+
+var planNotFound = errors.New("plan not found")
+
 // Handler for controller REST API
 type Handler struct {
-	repo Repo
-	key  string
+	Repo     Repo
+	PlanRepo PlanRepo
+	Key      string
 }
 
 var (
@@ -126,6 +125,7 @@ var (
 	resDup             = "duplicate name"
 	resNotFound        = "not found"
 	resVerifyIncorrect = "token incorrect"
+	resPlanNotFound    = "plan not found"
 )
 
 func (h *Handler) AddController(ctx *gin.Context) {
@@ -152,7 +152,16 @@ func (h *Handler) AddController(ctx *gin.Context) {
 
 	entity.Name = strings.TrimSpace(entity.Name)
 
-	if err = h.repo.AddController(ctx, entity); err != nil {
+	if entity.Plan != "" {
+		if err := h.PlanRepo.PlanExist(ctx, entity.UserId, entity.Plan); err != nil {
+			if err == planNotFound {
+				ctx.JSON(http.StatusNotFound, gin.H{"message": resPlanNotFound})
+				return
+			}
+		}
+	}
+
+	if err = h.Repo.AddController(ctx, entity); err != nil {
 		if err == duplicateName {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": resDup})
 		} else {
@@ -177,7 +186,7 @@ func (h *Handler) ListControllers(ctx *gin.Context) {
 		return
 	}
 
-	entityList, err := h.repo.ListControllers(ctx, userId)
+	entityList, err := h.Repo.ListControllers(ctx, userId)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
@@ -206,7 +215,7 @@ func (h *Handler) GetController(ctx *gin.Context) {
 	}
 
 	entity := &Entity{ControllerId: controllerId, UserId: userId}
-	if err = h.repo.GetController(ctx, entity); err != nil {
+	if err = h.Repo.GetController(ctx, entity); err != nil {
 		if err == controllerNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
 		} else {
@@ -251,8 +260,17 @@ func (h *Handler) UpdateController(ctx *gin.Context) {
 
 	entity.Name = strings.TrimSpace(entity.Name)
 
+	if entity.Plan != "" {
+		if err := h.PlanRepo.PlanExist(ctx, entity.UserId, entity.Plan); err != nil {
+			if err == planNotFound {
+				ctx.JSON(http.StatusNotFound, gin.H{"message": resPlanNotFound})
+				return
+			}
+		}
+	}
+
 	// use repo to call external data source
-	if err = h.repo.UpdateController(ctx, entity); err != nil {
+	if err = h.Repo.UpdateController(ctx, entity); err != nil {
 		if err == controllerNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
 		} else {
@@ -279,7 +297,7 @@ func (h *Handler) RemoveController(ctx *gin.Context) {
 		return
 	}
 
-	if err = h.repo.RemoveController(ctx, userId, controllerId); err != nil {
+	if err = h.Repo.RemoveController(ctx, userId, controllerId); err != nil {
 		if err == controllerNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
 			return
@@ -308,7 +326,7 @@ func (h *Handler) GenerateToken(ctx *gin.Context) {
 
 	// generate token
 	tokenId := uuid.New().String()
-	hash := hmac.New(sha256.New, []byte(h.key))
+	hash := hmac.New(sha256.New, []byte(h.Key))
 
 	if _, err := io.WriteString(hash, tokenId); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
@@ -316,7 +334,7 @@ func (h *Handler) GenerateToken(ctx *gin.Context) {
 	}
 	hashedToken := hex.EncodeToString(hash.Sum(nil))
 
-	if err := h.repo.GenerateToken(ctx, userId, controllerId, hashedToken); err != nil {
+	if err := h.Repo.GenerateToken(ctx, userId, controllerId, hashedToken); err != nil {
 		if err == controllerNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
 			return
@@ -351,7 +369,7 @@ func (h *Handler) VerifyToken(ctx *gin.Context) {
 	}
 
 	// find hash of controllerToken
-	hasher := hmac.New(sha256.New, []byte(h.key))
+	hasher := hmac.New(sha256.New, []byte(h.Key))
 
 	if _, err := io.WriteString(hasher, body.Token); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
@@ -359,7 +377,7 @@ func (h *Handler) VerifyToken(ctx *gin.Context) {
 	}
 	hashedToken := hex.EncodeToString(hasher.Sum(nil))
 
-	if err := h.repo.VerifyToken(ctx, userId, controllerId, hashedToken); err != nil {
+	if err := h.Repo.VerifyToken(ctx, userId, controllerId, hashedToken); err != nil {
 		if err == controllerNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
 			return

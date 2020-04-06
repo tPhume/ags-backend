@@ -90,8 +90,15 @@ func (t *repoStruct) VerifyToken(ctx context.Context, userId string, controllerI
 	return nil
 }
 
+// PlanRepo struct for testing
+type planRepoStruct struct {}
+
+func (p *planRepoStruct) PlanExist(context.Context, string, string) error {
+	return nil
+}
+
 // Handler struct for testing
-var handler = &Handler{repo: &repoStruct{}, key: "fake"}
+var handler = &Handler{Repo: &repoStruct{}, PlanRepo:&planRepoStruct{}, Key: "fake"}
 
 // Setup func for handler testing
 func setUp() *gin.Engine {
