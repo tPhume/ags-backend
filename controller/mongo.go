@@ -116,7 +116,15 @@ func (m MongoRepo) UpdateController(ctx context.Context, entity *Entity) error {
 }
 
 func (m MongoRepo) RemoveController(ctx context.Context, userId string, controllerId string) error {
-	panic("implement me")
+	if result := m.Col.FindOneAndDelete(ctx, bson.M{"_id": controllerNotFound, "userId": userId}); result.Err() != nil {
+		if result.Err() == mongo.ErrNoDocuments {
+			return controllerNotFound
+		}
+
+		return result.Err()
+	}
+
+	return nil
 }
 
 func (m MongoRepo) GenerateToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
