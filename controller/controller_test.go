@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,7 +28,7 @@ var controller = Entity{
 // Repo struct for testing
 type repoStruct struct{}
 
-func (t *repoStruct) AddController(entity *Entity) error {
+func (t *repoStruct) AddController(ctx context.Context, entity *Entity) error {
 	if entity.Name == "DuplicateName" {
 		return duplicateName
 	} else if entity.Name == "InternalName" {
@@ -37,11 +38,11 @@ func (t *repoStruct) AddController(entity *Entity) error {
 	return nil
 }
 
-func (t *repoStruct) ListControllers(string) ([]*Entity, error) {
+func (t *repoStruct) ListControllers(context.Context, string) ([]*Entity, error) {
 	return []*Entity{&controller}, nil
 }
 
-func (t *repoStruct) GetController(entity *Entity) error {
+func (t *repoStruct) GetController(ctx context.Context, entity *Entity) error {
 	if entity.ControllerId == controller.ControllerId {
 		return nil
 	}
@@ -49,7 +50,7 @@ func (t *repoStruct) GetController(entity *Entity) error {
 	return controllerNotFound
 }
 
-func (t *repoStruct) UpdateController(entity *Entity) error {
+func (t *repoStruct) UpdateController(ctx context.Context, entity *Entity) error {
 	if entity.ControllerId == controller.ControllerId {
 		return nil
 	}
@@ -57,7 +58,7 @@ func (t *repoStruct) UpdateController(entity *Entity) error {
 	return controllerNotFound
 }
 
-func (t *repoStruct) RemoveController(userId string, controllerId string) error {
+func (t *repoStruct) RemoveController(ctx context.Context, userId string, controllerId string) error {
 	if controllerId == controller.ControllerId {
 		return nil
 	} else if controllerId == controller.UserId {
@@ -67,7 +68,7 @@ func (t *repoStruct) RemoveController(userId string, controllerId string) error 
 	return nil
 }
 
-func (t *repoStruct) GenerateToken(userId string, controllerId string, token string) error {
+func (t *repoStruct) GenerateToken(ctx context.Context, userId string, controllerId string, token string) error {
 	if controllerId == controller.ControllerId {
 		return nil
 	} else if controllerId == controller.UserId {
@@ -77,7 +78,7 @@ func (t *repoStruct) GenerateToken(userId string, controllerId string, token str
 	return nil
 }
 
-func (t *repoStruct) VerifyToken(userId string, controllerId string, hashedToken string) error {
+func (t *repoStruct) VerifyToken(ctx context.Context, userId string, controllerId string, hashedToken string) error {
 	if controllerId != controller.ControllerId {
 		return controllerNotFound
 	}
@@ -104,7 +105,6 @@ func setUp() *gin.Engine {
 
 	return engine
 }
-
 
 // Test AddControllers handler
 func TestHandler_AddController(t *testing.T) {

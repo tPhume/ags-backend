@@ -3,6 +3,7 @@
 package controller
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -49,32 +50,32 @@ func NameValidation(fl validator.FieldLevel) bool {
 type Repo interface {
 	// AddController creates new controller at data source given *Entity type
 	// Duplicated Controller entity will result in an error
-	AddController(*Entity) error
+	AddController(context.Context, *Entity) error
 
 	// ListControllers fetches all controller under the given UserId
 	// Return of empty slice does not imply error
-	ListControllers(string) ([]*Entity, error)
+	ListControllers(context.Context, string) ([]*Entity, error)
 
 	// GetController fetches specific controller by given Entity with UserId and ControllerId
 	// Return of nil value for *Entity indicates error
-	GetController(*Entity) error
+	GetController(context.Context, *Entity) error
 
 	// UpdateController replaces the controller given Entity object
-	UpdateController(*Entity) error
+	UpdateController(context.Context, *Entity) error
 
 	// RemoveController deletes data from data source given ControllerId
 	// Cascade deletion is done asynchronously
 	// Missing controller will result in an error
-	RemoveController(string, string) error
+	RemoveController(context.Context, string, string) error
 
 	// GenerateToken replaces the token (must be hashed prior) given the userId, controllerId and hashed token
 	// Missing controller will result in an error
-	GenerateToken(string, string, string) error
+	GenerateToken(context.Context, string, string, string) error
 
 	// VerifyToken checks the hashed token against the one it has in store
 	// If token does not match the hash it result in an error
 	// Missing controller will result in an error
-	VerifyToken(string, string, string) error
+	VerifyToken(context.Context, string, string, string) error
 }
 
 // Contains errors that implementation of Repo should use
