@@ -7,11 +7,11 @@ import (
 )
 
 type MongoRepo struct {
-	col *mongo.Collection
+	Col *mongo.Collection
 }
 
 func (m MongoRepo) AddController(ctx context.Context, entity *Entity) error {
-	if _, err := m.col.InsertOne(ctx, bson.M{
+	if _, err := m.Col.InsertOne(ctx, bson.M{
 		"_id":    entity.ControllerId,
 		"userId": entity.UserId,
 		"name":   entity.Name,
@@ -36,7 +36,7 @@ func (m MongoRepo) AddController(ctx context.Context, entity *Entity) error {
 }
 
 func (m MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Entity, error) {
-	cursor, err := m.col.Find(ctx, bson.M{"userId": userId})
+	cursor, err := m.Col.Find(ctx, bson.M{"userId": userId})
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (m MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Entit
 }
 
 func (m MongoRepo) GetController(ctx context.Context, entity *Entity) error {
-	result := m.col.FindOne(ctx, bson.M{
+	result := m.Col.FindOne(ctx, bson.M{
 		"_id":    entity.ControllerId,
 		"userId": entity.UserId,
 	})
@@ -87,7 +87,32 @@ func (m MongoRepo) GetController(ctx context.Context, entity *Entity) error {
 }
 
 func (m MongoRepo) UpdateController(ctx context.Context, entity *Entity) error {
-	panic("implement me")
+	result := m.Col.FindOneAndReplace(ctx, bson.M{"_id": entity.ControllerId, "userId": entity.UserId}, bson.M{
+		"Name": entity.Name,
+		"Desc": entity.Desc,
+		"Plan": entity.Plan,
+	})
+
+	if result.Err() != nil {
+		if result.Err() == mongo.ErrNoDocuments {
+			return controllerNotFound
+		}
+
+		if err, ok := result.Err().(mongo.CommandError); ok {
+			if err.Code == 11000 {
+				return duplicateName
+			}
+		}
+
+		return result.Err()
+	}
+
+	resultBody := &Result{}
+	if err := result.Decode(resultBody); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m MongoRepo) RemoveController(ctx context.Context, userId string, controllerId string) error {
