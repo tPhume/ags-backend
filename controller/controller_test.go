@@ -388,40 +388,48 @@ func TestGenerateToken(t *testing.T) {
 // Test VerifyToken
 func TestVerifyToken(t *testing.T) {
 	engine := setUp()
-	engine.GET(":controllerId/:controllerToken", handler.VerifyToken)
+	engine.GET(":controllerId", handler.VerifyToken)
 
 	testCases := []struct {
 		in      string
+		body    mapping
 		message string
 		code    int
 	}{
 		{
-			in:      fmt.Sprintf("/%s/%s", controller.ControllerId, controller.ControllerId),
+			in:      fmt.Sprintf("/%s", controller.ControllerId),
+			body:    mapping{"token": controller.ControllerId},
 			message: resVerifyOk,
 			code:    http.StatusOK,
 		}, {
-			in:      fmt.Sprintf("/%s/%s", controller.UserId, controller.ControllerId),
+			in:      fmt.Sprintf("/%s", controller.UserId),
+			body:    mapping{"token": controller.ControllerId},
 			message: resNotFound,
 			code:    http.StatusNotFound,
 		}, {
-			in:      fmt.Sprintf("/%s/%s", controller.ControllerId, "fnjdslfnlk"),
+			in:      fmt.Sprintf("/%s", controller.ControllerId),
+			body:    mapping{"token": "fnjdslfnlk"},
 			message: resInvalid,
 			code:    http.StatusBadRequest,
 		}, {
-			in:      fmt.Sprintf("/%s/%s", "dfwqfe", controller.ControllerId),
+			in:      fmt.Sprintf("/%s", "dfwqfe"),
+			body:    mapping{"token": controller.ControllerId},
 			message: resInvalid,
 			code:    http.StatusBadRequest,
 		}, {
-			in:      fmt.Sprintf("/%s/%s", controller.ControllerId, controller.UserId),
+			in:      fmt.Sprintf("/%s", controller.ControllerId),
+			body:    mapping{"token": controller.UserId},
 			message: resVerifyIncorrect,
-			code:    http.StatusNotFound,
+			code:    http.StatusBadRequest,
 		},
 	}
 
 	for _, c := range testCases {
 		resp := httptest.NewRecorder()
 
-		req, _ := http.NewRequest(http.MethodGet, c.in, nil)
+		body, _ := json.Marshal(c.body)
+
+		req, _ := http.NewRequest(http.MethodGet, c.in, bytes.NewReader(body))
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}

@@ -28,6 +28,11 @@ type Entity struct {
 	Plan         string `json:"plan" binding:"omitempty,controller_plan"`
 }
 
+// VerifyToken request body
+type VerifyToken struct {
+	Token string `json:"token" binding:"required,uuid4"`
+}
+
 // addStructValidation register StructValidation function to Gin's default validator Engine
 func addValidation() {
 	v := binding.Validator.Engine().(*validator.Validate)
@@ -339,20 +344,20 @@ func (h *Handler) VerifyToken(ctx *gin.Context) {
 	}
 
 	// check controllerToken
-	controllerToken := ctx.Param("controllerToken")
-	if _, err := uuid.Parse(controllerToken); err != nil {
+	body := &VerifyToken{}
+	if err := ctx.ShouldBindJSON(body); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		return
 	}
 
 	// find hash of controllerToken
-	hash := hmac.New(sha256.New, []byte(h.key))
+	hasher := hmac.New(sha256.New, []byte(h.key))
 
-	if _, err := io.WriteString(hash, controllerToken); err != nil {
+	if _, err := io.WriteString(hasher, body.Token); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
-	hashedToken := hex.EncodeToString(hash.Sum(nil))
+	hashedToken := hex.EncodeToString(hasher.Sum(nil))
 
 	if err := h.repo.VerifyToken(ctx, userId, controllerId, hashedToken); err != nil {
 		if err == controllerNotFound {
@@ -361,7 +366,7 @@ func (h *Handler) VerifyToken(ctx *gin.Context) {
 		}
 
 		if err == tokenIncorrect {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": resVerifyIncorrect})
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": resVerifyIncorrect})
 			return
 		}
 
