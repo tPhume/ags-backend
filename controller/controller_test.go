@@ -15,7 +15,12 @@ import (
 // For out test controller.ControllerId uuid indicate existing controller
 // Any other uuid will indicate missing controller - for 404 cases
 
-const goodHashedToken string = "f911ec3e7c28625729dd99f1ff27704e3f64f4aaaa4118fedd1e19c9df5f4c1a"
+const (
+	goodHashedToken string = "f911ec3e7c28625729dd99f1ff27704e3f64f4aaaa4118fedd1e19c9df5f4c1a"
+	goodPlan               = "f1d67e51-4ca4-4b25-a4b7-6c8f06822075"
+	missingPlan            = "76de6d55-e457-4070-8aef-5633726d498f"
+	internalPlan           = "ebd03d33-6659-4241-9e59-d8dad087cc34"
+)
 
 var controller = Entity{
 	ControllerId: "f1d67e51-4ca4-4b25-a4b7-6c8f06822075",
@@ -91,14 +96,20 @@ func (t *repoStruct) VerifyToken(ctx context.Context, userId string, controllerI
 }
 
 // PlanRepo struct for testing
-type planRepoStruct struct {}
+type planRepoStruct struct{}
 
-func (p *planRepoStruct) PlanExist(context.Context, string, string) error {
-	return nil
+func (p *planRepoStruct) PlanExist(ctx context.Context, userId string, planId string) error {
+	if planId == goodPlan {
+		return nil
+	} else if planId == missingPlan {
+		return planNotFound
+	}
+
+	return errors.New("some internal error")
 }
 
 // Handler struct for testing
-var handler = &Handler{Repo: &repoStruct{}, PlanRepo:&planRepoStruct{}, Key: "fake"}
+var handler = &Handler{Repo: &repoStruct{}, PlanRepo: &planRepoStruct{}, Key: "fake"}
 
 // Setup func for handler testing
 func setUp() *gin.Engine {
@@ -145,6 +156,22 @@ func TestHandler_AddController(t *testing.T) {
 			code:    http.StatusBadRequest,
 		}, {
 			in:      mapping{"Name": "InternalName", "Desc": "GoodDesc"},
+			message: resInternal,
+			code:    http.StatusInternalServerError,
+		}, {
+			in:      mapping{"Name": "GoodName", "Desc": "GoodDesc", "Plan": goodPlan},
+			message: resAdded,
+			code:    http.StatusCreated,
+		}, {
+			in:      mapping{"Name": "GoodName", "Desc": "GoodDesc", "Plan": "fdewfewf"},
+			message: resInvalid,
+			code:    http.StatusBadRequest,
+		}, {
+			in:      mapping{"Name": "GoodName", "Desc": "GoodDesc", "Plan": missingPlan},
+			message: resPlanNotFound,
+			code:    http.StatusNotFound,
+		}, {
+			in:      mapping{"Name": "GoodName", "Desc": "GoodDesc", "Plan": internalPlan},
 			message: resInternal,
 			code:    http.StatusInternalServerError,
 		},
@@ -271,8 +298,7 @@ func TestHandler_UpdateController(t *testing.T) {
 			code:    http.StatusOK,
 		},
 		{
-			in:
-			"lkmwklfmd",
+			in:      "lkmwklfmd",
 			body:    mapping{},
 			message: resInvalid,
 			code:    http.StatusBadRequest,
@@ -281,6 +307,26 @@ func TestHandler_UpdateController(t *testing.T) {
 			body:    mapping{"Name": "", "Desc": "GoodDesc"},
 			message: resInvalid,
 			code:    http.StatusBadRequest,
+		}, {
+			in:      controller.ControllerId,
+			body:    mapping{"Name": "GoodName", "Plan": goodPlan},
+			message: resUpdate,
+			code:    http.StatusOK,
+		}, {
+			in:      controller.ControllerId,
+			body:    mapping{"Name": "GoodName", "Plan": "fewfe"},
+			message: resInvalid,
+			code:    http.StatusBadRequest,
+		}, {
+			in:      controller.ControllerId,
+			body:    mapping{"Name": "GoodName", "Plan": missingPlan},
+			message: resPlanNotFound,
+			code:    http.StatusNotFound,
+		}, {
+			in:      controller.ControllerId,
+			body:    mapping{"Name": "GoodName", "Plan": internalPlan},
+			message: resInternal,
+			code:    http.StatusInternalServerError,
 		},
 	}
 

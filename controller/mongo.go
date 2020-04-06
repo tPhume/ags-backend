@@ -170,3 +170,20 @@ type Result struct {
 	Plan         string `json:"plan"`
 	Token        string `json:"token"`
 }
+
+// For PlanRepo type
+type MongoPlanRepo struct {
+	Col *mongo.Collection
+}
+
+func (m *MongoPlanRepo) PlanExist(ctx context.Context, userId string, planId string) error {
+	if result := m.Col.FindOne(ctx, bson.M{"_id": planId, "userId": userId}); result.Err() != nil {
+		if result.Err() == mongo.ErrNoDocuments {
+			return planNotFound
+		}
+
+		return result.Err()
+	}
+
+	return nil
+}

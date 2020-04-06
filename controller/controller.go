@@ -156,8 +156,11 @@ func (h *Handler) AddController(ctx *gin.Context) {
 		if err := h.PlanRepo.PlanExist(ctx, entity.UserId, entity.Plan); err != nil {
 			if err == planNotFound {
 				ctx.JSON(http.StatusNotFound, gin.H{"message": resPlanNotFound})
-				return
+			} else {
+				ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 			}
+
+			return
 		}
 	}
 
@@ -264,8 +267,11 @@ func (h *Handler) UpdateController(ctx *gin.Context) {
 		if err := h.PlanRepo.PlanExist(ctx, entity.UserId, entity.Plan); err != nil {
 			if err == planNotFound {
 				ctx.JSON(http.StatusNotFound, gin.H{"message": resPlanNotFound})
-				return
+			} else {
+				ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 			}
+
+			return
 		}
 	}
 
