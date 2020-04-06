@@ -142,7 +142,25 @@ func (m MongoRepo) GenerateToken(ctx context.Context, userId string, controllerI
 }
 
 func (m MongoRepo) VerifyToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
-	panic("implement me")
+	result := m.Col.FindOne(ctx, bson.M{"_id": controllerId, "userId": userId})
+	if result.Err() != nil {
+		if result.Err() == mongo.ErrNoDocuments {
+			return controllerNotFound
+		}
+
+		return result.Err()
+	}
+
+	resultBody := &Result{}
+	if err := result.Decode(resultBody); err != nil {
+		return err
+	}
+
+	if resultBody.Token != hashToken {
+		return tokenIncorrect
+	}
+
+	return nil
 }
 
 type Result struct {
@@ -150,4 +168,5 @@ type Result struct {
 	Name         string `json:"name"`
 	Desc         string `json:"desc"`
 	Plan         string `json:"plan"`
+	Token        string `json:"token"`
 }
