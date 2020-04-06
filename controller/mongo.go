@@ -60,8 +60,30 @@ func (m MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Entit
 	return entities, nil
 }
 
-func (m MongoRepo) GetController(*Entity) error {
-	panic("implement me")
+func (m MongoRepo) GetController(ctx context.Context, entity *Entity) error {
+	result := m.col.FindOne(ctx, bson.M{
+		"_id":    entity.ControllerId,
+		"userId": entity.UserId,
+	})
+
+	if result.Err() != nil {
+		if result.Err() == mongo.ErrNoDocuments {
+			return controllerNotFound
+		}
+
+		return result.Err()
+	}
+
+	resultBody := &Result{}
+	if err := result.Decode(resultBody); err != nil {
+		return err
+	}
+
+	entity.Name = resultBody.Name
+	entity.Desc = resultBody.Desc
+	entity.Plan = resultBody.Plan
+
+	return nil
 }
 
 func (m MongoRepo) UpdateController(*Entity) error {
