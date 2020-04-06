@@ -86,19 +86,19 @@ func (m MongoRepo) GetController(ctx context.Context, entity *Entity) error {
 	return nil
 }
 
-func (m MongoRepo) UpdateController(*Entity) error {
+func (m MongoRepo) UpdateController(ctx context.Context, entity *Entity) error {
 	panic("implement me")
 }
 
-func (m MongoRepo) RemoveController(string, string) error {
+func (m MongoRepo) RemoveController(ctx context.Context, userId string, controllerId string) error {
 	panic("implement me")
 }
 
-func (m MongoRepo) GenerateToken(string, string, string) error {
+func (m MongoRepo) GenerateToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
 	panic("implement me")
 }
 
-func (m MongoRepo) VerifyToken(string, string, string) error {
+func (m MongoRepo) VerifyToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
 	panic("implement me")
 }
 
