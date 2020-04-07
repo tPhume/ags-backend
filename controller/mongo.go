@@ -87,10 +87,12 @@ func (m MongoRepo) GetController(ctx context.Context, entity *Entity) error {
 }
 
 func (m MongoRepo) UpdateController(ctx context.Context, entity *Entity) error {
-	result := m.Col.FindOneAndReplace(ctx, bson.M{"_id": entity.ControllerId, "userId": entity.UserId}, bson.M{
-		"Name": entity.Name,
-		"Desc": entity.Desc,
-		"Plan": entity.Plan,
+	result := m.Col.FindOneAndUpdate(ctx, bson.M{"_id": entity.ControllerId, "userId": entity.UserId}, bson.M{
+		"$set": bson.M{
+			"Name": entity.Name,
+			"Desc": entity.Desc,
+			"Plan": entity.Plan,
+		},
 	})
 
 	if result.Err() != nil {
@@ -105,11 +107,6 @@ func (m MongoRepo) UpdateController(ctx context.Context, entity *Entity) error {
 		}
 
 		return result.Err()
-	}
-
-	resultBody := &Result{}
-	if err := result.Decode(resultBody); err != nil {
-		return err
 	}
 
 	return nil
