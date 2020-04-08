@@ -12,12 +12,27 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/tPhume/ags-backend/session"
 	"io"
 	"net/http"
 	"strings"
 )
 
 type mapping map[string]interface{}
+
+func RegisterRoutes(handler *Handler, engine *gin.Engine, sessionHandler *session.Handler) {
+	group := engine.Group("api/v1/controller")
+	group.Use(sessionHandler.GetUser)
+
+	group.POST("", handler.AddController)
+	group.GET("", handler.ListControllers)
+	group.GET("/:controllerId", handler.GetController)
+	group.PUT("/:controllerId", handler.UpdateController)
+	group.DELETE("/:controllerId", handler.RemoveController)
+
+	group.POST("/:controllerId/token", handler.GenerateToken)
+	group.GET("/:controllerId/token", handler.VerifyToken)
+}
 
 // Controller Entity type represent edge device
 type Entity struct {

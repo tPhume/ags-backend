@@ -10,7 +10,7 @@ type MongoRepo struct {
 	Col *mongo.Collection
 }
 
-func (m MongoRepo) AddController(ctx context.Context, entity *Entity) error {
+func (m *MongoRepo) AddController(ctx context.Context, entity *Entity) error {
 	if _, err := m.Col.InsertOne(ctx, bson.M{
 		"_id":    entity.ControllerId,
 		"userId": entity.UserId,
@@ -35,7 +35,7 @@ func (m MongoRepo) AddController(ctx context.Context, entity *Entity) error {
 	return nil
 }
 
-func (m MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Entity, error) {
+func (m *MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Entity, error) {
 	cursor, err := m.Col.Find(ctx, bson.M{"userId": userId})
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func (m MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Entit
 	return entities, nil
 }
 
-func (m MongoRepo) GetController(ctx context.Context, entity *Entity) error {
+func (m *MongoRepo) GetController(ctx context.Context, entity *Entity) error {
 	result := m.Col.FindOne(ctx, bson.M{
 		"_id":    entity.ControllerId,
 		"userId": entity.UserId,
@@ -86,7 +86,7 @@ func (m MongoRepo) GetController(ctx context.Context, entity *Entity) error {
 	return nil
 }
 
-func (m MongoRepo) UpdateController(ctx context.Context, entity *Entity) error {
+func (m *MongoRepo) UpdateController(ctx context.Context, entity *Entity) error {
 	result := m.Col.FindOneAndUpdate(ctx, bson.M{"_id": entity.ControllerId, "userId": entity.UserId}, bson.M{
 		"$set": bson.M{
 			"Name": entity.Name,
@@ -112,7 +112,7 @@ func (m MongoRepo) UpdateController(ctx context.Context, entity *Entity) error {
 	return nil
 }
 
-func (m MongoRepo) RemoveController(ctx context.Context, userId string, controllerId string) error {
+func (m *MongoRepo) RemoveController(ctx context.Context, userId string, controllerId string) error {
 	if result := m.Col.FindOneAndDelete(ctx, bson.M{"_id": controllerNotFound, "userId": userId}); result.Err() != nil {
 		if result.Err() == mongo.ErrNoDocuments {
 			return controllerNotFound
@@ -124,7 +124,7 @@ func (m MongoRepo) RemoveController(ctx context.Context, userId string, controll
 	return nil
 }
 
-func (m MongoRepo) GenerateToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
+func (m *MongoRepo) GenerateToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
 	if result := m.Col.FindOneAndUpdate(ctx, bson.M{"_id": controllerId, "userId": userId}, bson.M{
 		"$set": bson.M{"token": hashToken},
 	}); result.Err() != nil {
@@ -138,7 +138,7 @@ func (m MongoRepo) GenerateToken(ctx context.Context, userId string, controllerI
 	return nil
 }
 
-func (m MongoRepo) VerifyToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
+func (m *MongoRepo) VerifyToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
 	result := m.Col.FindOne(ctx, bson.M{"_id": controllerId, "userId": userId})
 	if result.Err() != nil {
 		if result.Err() == mongo.ErrNoDocuments {
