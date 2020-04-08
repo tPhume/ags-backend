@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +15,12 @@ import (
 // For out test controller.ControllerId uuid indicate existing controller
 // Any other uuid will indicate missing controller - for 404 cases
 
-const goodHashedToken string = "f911ec3e7c28625729dd99f1ff27704e3f64f4aaaa4118fedd1e19c9df5f4c1a"
+const (
+	goodHashedToken string = "f911ec3e7c28625729dd99f1ff27704e3f64f4aaaa4118fedd1e19c9df5f4c1a"
+	goodPlan               = "f1d67e51-4ca4-4b25-a4b7-6c8f06822075"
+	missingPlan            = "76de6d55-e457-4070-8aef-5633726d498f"
+	internalPlan           = "ebd03d33-6659-4241-9e59-d8dad087cc34"
+)
 
 var controller = Entity{
 	ControllerId: "f1d67e51-4ca4-4b25-a4b7-6c8f06822075",
@@ -27,7 +33,7 @@ var controller = Entity{
 // Repo struct for testing
 type repoStruct struct{}
 
-func (t *repoStruct) AddController(entity *Entity) error {
+func (t *repoStruct) AddController(ctx context.Context, entity *Entity) error {
 	if entity.Name == "DuplicateName" {
 		return duplicateName
 	} else if entity.Name == "InternalName" {
@@ -37,11 +43,11 @@ func (t *repoStruct) AddController(entity *Entity) error {
 	return nil
 }
 
-func (t *repoStruct) ListControllers(string) ([]*Entity, error) {
+func (t *repoStruct) ListControllers(context.Context, string) ([]*Entity, error) {
 	return []*Entity{&controller}, nil
 }
 
-func (t *repoStruct) GetController(entity *Entity) error {
+func (t *repoStruct) GetController(ctx context.Context, entity *Entity) error {
 	if entity.ControllerId == controller.ControllerId {
 		return nil
 	}
@@ -49,7 +55,7 @@ func (t *repoStruct) GetController(entity *Entity) error {
 	return controllerNotFound
 }
 
-func (t *repoStruct) UpdateController(entity *Entity) error {
+func (t *repoStruct) UpdateController(ctx context.Context, entity *Entity) error {
 	if entity.ControllerId == controller.ControllerId {
 		return nil
 	}
@@ -57,7 +63,7 @@ func (t *repoStruct) UpdateController(entity *Entity) error {
 	return controllerNotFound
 }
 
-func (t *repoStruct) RemoveController(userId string, controllerId string) error {
+func (t *repoStruct) RemoveController(ctx context.Context, userId string, controllerId string) error {
 	if controllerId == controller.ControllerId {
 		return nil
 	} else if controllerId == controller.UserId {
@@ -67,7 +73,7 @@ func (t *repoStruct) RemoveController(userId string, controllerId string) error 
 	return nil
 }
 
-func (t *repoStruct) GenerateToken(userId string, controllerId string, token string) error {
+func (t *repoStruct) GenerateToken(ctx context.Context, userId string, controllerId string, token string) error {
 	if controllerId == controller.ControllerId {
 		return nil
 	} else if controllerId == controller.UserId {
@@ -77,7 +83,7 @@ func (t *repoStruct) GenerateToken(userId string, controllerId string, token str
 	return nil
 }
 
-func (t *repoStruct) VerifyToken(userId string, controllerId string, hashedToken string) error {
+func (t *repoStruct) VerifyToken(ctx context.Context, userId string, controllerId string, hashedToken string) error {
 	if controllerId != controller.ControllerId {
 		return controllerNotFound
 	}
@@ -89,8 +95,21 @@ func (t *repoStruct) VerifyToken(userId string, controllerId string, hashedToken
 	return nil
 }
 
+// PlanRepo struct for testing
+type planRepoStruct struct{}
+
+func (p *planRepoStruct) PlanExist(ctx context.Context, userId string, planId string) error {
+	if planId == goodPlan {
+		return nil
+	} else if planId == missingPlan {
+		return planNotFound
+	}
+
+	return errors.New("some internal error")
+}
+
 // Handler struct for testing
-var handler = &Handler{repo: &repoStruct{}, key: "fake"}
+var handler = &Handler{Repo: &repoStruct{}, PlanRepo: &planRepoStruct{}, Key: "fake"}
 
 // Setup func for handler testing
 func setUp() *gin.Engine {
@@ -104,7 +123,6 @@ func setUp() *gin.Engine {
 
 	return engine
 }
-
 
 // Test AddControllers handler
 func TestHandler_AddController(t *testing.T) {
@@ -138,6 +156,22 @@ func TestHandler_AddController(t *testing.T) {
 			code:    http.StatusBadRequest,
 		}, {
 			in:      mapping{"Name": "InternalName", "Desc": "GoodDesc"},
+			message: resInternal,
+			code:    http.StatusInternalServerError,
+		}, {
+			in:      mapping{"Name": "GoodName", "Desc": "GoodDesc", "Plan": goodPlan},
+			message: resAdded,
+			code:    http.StatusCreated,
+		}, {
+			in:      mapping{"Name": "GoodName", "Desc": "GoodDesc", "Plan": "fdewfewf"},
+			message: resInvalid,
+			code:    http.StatusBadRequest,
+		}, {
+			in:      mapping{"Name": "GoodName", "Desc": "GoodDesc", "Plan": missingPlan},
+			message: resPlanNotFound,
+			code:    http.StatusNotFound,
+		}, {
+			in:      mapping{"Name": "GoodName", "Desc": "GoodDesc", "Plan": internalPlan},
 			message: resInternal,
 			code:    http.StatusInternalServerError,
 		},
@@ -264,8 +298,7 @@ func TestHandler_UpdateController(t *testing.T) {
 			code:    http.StatusOK,
 		},
 		{
-			in:
-			"lkmwklfmd",
+			in:      "lkmwklfmd",
 			body:    mapping{},
 			message: resInvalid,
 			code:    http.StatusBadRequest,
@@ -274,6 +307,26 @@ func TestHandler_UpdateController(t *testing.T) {
 			body:    mapping{"Name": "", "Desc": "GoodDesc"},
 			message: resInvalid,
 			code:    http.StatusBadRequest,
+		}, {
+			in:      controller.ControllerId,
+			body:    mapping{"Name": "GoodName", "Plan": goodPlan},
+			message: resUpdate,
+			code:    http.StatusOK,
+		}, {
+			in:      controller.ControllerId,
+			body:    mapping{"Name": "GoodName", "Plan": "fewfe"},
+			message: resInvalid,
+			code:    http.StatusBadRequest,
+		}, {
+			in:      controller.ControllerId,
+			body:    mapping{"Name": "GoodName", "Plan": missingPlan},
+			message: resPlanNotFound,
+			code:    http.StatusNotFound,
+		}, {
+			in:      controller.ControllerId,
+			body:    mapping{"Name": "GoodName", "Plan": internalPlan},
+			message: resInternal,
+			code:    http.StatusInternalServerError,
 		},
 	}
 
@@ -388,40 +441,48 @@ func TestGenerateToken(t *testing.T) {
 // Test VerifyToken
 func TestVerifyToken(t *testing.T) {
 	engine := setUp()
-	engine.GET(":controllerId/:controllerToken", handler.VerifyToken)
+	engine.GET(":controllerId", handler.VerifyToken)
 
 	testCases := []struct {
 		in      string
+		body    mapping
 		message string
 		code    int
 	}{
 		{
-			in:      fmt.Sprintf("/%s/%s", controller.ControllerId, controller.ControllerId),
+			in:      fmt.Sprintf("/%s", controller.ControllerId),
+			body:    mapping{"token": controller.ControllerId},
 			message: resVerifyOk,
 			code:    http.StatusOK,
 		}, {
-			in:      fmt.Sprintf("/%s/%s", controller.UserId, controller.ControllerId),
+			in:      fmt.Sprintf("/%s", controller.UserId),
+			body:    mapping{"token": controller.ControllerId},
 			message: resNotFound,
 			code:    http.StatusNotFound,
 		}, {
-			in:      fmt.Sprintf("/%s/%s", controller.ControllerId, "fnjdslfnlk"),
+			in:      fmt.Sprintf("/%s", controller.ControllerId),
+			body:    mapping{"token": "fnjdslfnlk"},
 			message: resInvalid,
 			code:    http.StatusBadRequest,
 		}, {
-			in:      fmt.Sprintf("/%s/%s", "dfwqfe", controller.ControllerId),
+			in:      fmt.Sprintf("/%s", "dfwqfe"),
+			body:    mapping{"token": controller.ControllerId},
 			message: resInvalid,
 			code:    http.StatusBadRequest,
 		}, {
-			in:      fmt.Sprintf("/%s/%s", controller.ControllerId, controller.UserId),
+			in:      fmt.Sprintf("/%s", controller.ControllerId),
+			body:    mapping{"token": controller.UserId},
 			message: resVerifyIncorrect,
-			code:    http.StatusNotFound,
+			code:    http.StatusBadRequest,
 		},
 	}
 
 	for _, c := range testCases {
 		resp := httptest.NewRecorder()
 
-		req, _ := http.NewRequest(http.MethodGet, c.in, nil)
+		body, _ := json.Marshal(c.body)
+
+		req, _ := http.NewRequest(http.MethodGet, c.in, bytes.NewReader(body))
 		engine.ServeHTTP(resp, req)
 
 		respBody := mapping{}
