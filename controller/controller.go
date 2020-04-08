@@ -21,6 +21,7 @@ import (
 type mapping map[string]interface{}
 
 func RegisterRoutes(handler *Handler, engine *gin.Engine, sessionHandler *session.Handler) {
+	addValidation()
 	group := engine.Group("api/v1/controller")
 	group.Use(sessionHandler.GetUser)
 

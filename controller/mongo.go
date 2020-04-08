@@ -113,7 +113,7 @@ func (m *MongoRepo) UpdateController(ctx context.Context, entity *Entity) error 
 }
 
 func (m *MongoRepo) RemoveController(ctx context.Context, userId string, controllerId string) error {
-	if result := m.Col.FindOneAndDelete(ctx, bson.M{"_id": controllerNotFound, "userId": userId}); result.Err() != nil {
+	if result := m.Col.FindOneAndDelete(ctx, bson.M{"_id": controllerId, "userId": userId}); result.Err() != nil {
 		if result.Err() == mongo.ErrNoDocuments {
 			return controllerNotFound
 		}
