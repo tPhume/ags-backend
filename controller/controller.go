@@ -38,7 +38,7 @@ func RegisterRoutes(handler *Handler, engine *gin.Engine, sessionHandler *sessio
 // Controller Entity type represent edge device
 type Entity struct {
 	ControllerId string `json:"controller_id"`
-	UserId       string
+	UserId       string `json:"-"`
 	Name         string `json:"name" binding:"required,name"`
 	Desc         string `json:"desc"`
 	Plan         string `json:"plan" binding:"omitempty,uuid4"`
