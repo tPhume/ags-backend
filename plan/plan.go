@@ -1,5 +1,10 @@
 package plan
 
+import (
+	"context"
+	"errors"
+)
+
 // Represent a Plan object
 type Entity struct {
 	PlanId        string     `json:"plan_id" bson:"_id"`
@@ -38,4 +43,23 @@ type Action struct {
 	Type      string `json:"type"`
 	Intensity int    `json:"intensity"`
 	Duration  int    `json:"duration"`
+}
+
+// Repo interface for data source
+// Errors that should be used with Repo interface
+var (
+	errPlanNotFound  = errors.New("plan not found")
+	errPlanDuplicate = errors.New("plan with that name already exist")
+)
+
+type Repo interface {
+	CreatePlan(ctx context.Context, entity *Entity) error
+
+	ListPlans(ctx context.Context, userId string) ([]*Entity, error)
+
+	GetPlan(ctx context.Context, entity *Entity) error
+
+	ReplacePlan(ctx context.Context, entity *Entity) error
+
+	DeletePlan(ctx context.Context, userId string, planId string) error
 }
