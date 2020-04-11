@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 // Represent a Plan object
 type Entity struct {
-	PlanId        string     `json:"plan_id" bson:"_id"`
-	Name          string     `json:"name" bson:"name"`
-	HumidityState int        `json:"humidity_state"`
-	TempState     float32    `json:"temp_state"`
+	PlanId        string     `json:"plan_id" binding:"omitempty,uuid4"`
+	Name          string     `json:"name" binding:"plan_name"`
+	HumidityState int        `json:"humidity_state" binding:"gte=0,lte=100"`
+	TempState     float32    `json:"temp_state" binding:"gte=0,lte=50"`
 	Daily         []Daily    `json:"daily"`
 	Weekly        []Weekly   `json:"weekly"`
 	Monthly       []Monthly  `json:"monthly"`
@@ -20,30 +21,55 @@ type Entity struct {
 
 // Different type of routine
 type Daily struct {
-	DailyTime string   `json:"daily_time"`
+	DailyTime string   `json:"daily_time" binding:"daily_time"`
 	Action    []Action `json:"action"`
 }
 
 type Weekly struct {
-	WeeklyTime string   `json:"weekly_time"`
+	WeeklyTime string   `json:"weekly_time" binding:"weekly_time"`
 	Action     []Action `json:"action"`
 }
 
 type Monthly struct {
-	MonthlyTime string   `json:"monthly_time"`
+	MonthlyTime string   `json:"monthly_time" binding:"monthly_time"`
 	Action      []Action `json:"action"`
 }
 
 type Interval struct {
-	IntervalTime string   `json:"interval_time"`
+	IntervalTime string   `json:"interval_time" binding:"interval_time"`
 	Action       []Action `json:"action"`
 }
 
 // Action type
 type Action struct {
-	Type      string `json:"type"`
-	Intensity int    `json:"intensity"`
-	Duration  int    `json:"duration"`
+	Type      string `json:"type" binding:"action_type"`
+	Intensity int    `json:"intensity" binding:"gte=0,lte=100"`
+	Duration  int    `json:"duration" binding:"gte=0"`
+}
+
+// Custom field validation
+func planName(fl validator.FieldLevel) bool {
+	panic("implement me")
+}
+
+func dailyTime(fl validator.FieldLevel) bool {
+	panic("implement me")
+}
+
+func weeklyTime(fl validator.FieldLevel) bool {
+	panic("implement me")
+}
+
+func monthlyTime(fl validator.FieldLevel) bool {
+	panic("implement me")
+}
+
+func intervalTime(fl validator.FieldLevel) bool {
+	panic("implement me")
+}
+
+func actionType(fl validator.FieldLevel) bool {
+	panic("implement me")
 }
 
 // Repo interface for data source
