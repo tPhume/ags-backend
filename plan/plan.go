@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"errors"
+	"github.com/gin-gonic/gin"
 )
 
 // Represent a Plan object
@@ -62,4 +63,45 @@ type Repo interface {
 	ReplacePlan(ctx context.Context, entity *Entity) error
 
 	DeletePlan(ctx context.Context, userId string, planId string) error
+}
+
+// Handler for Plan endpoint
+// Response messages to use
+const (
+	// Success responses
+	resCreatePlan  = "plan created"
+	resListPlans   = "list of plans retrieved"
+	resGetPlan     = "plan retrieved"
+	resReplacePlan = "plan replaced"
+	resDeletePlan  = "plan deleted"
+
+	// Error responses
+	resInvalid      = "invalid format"
+	resInternal     = "internal error"
+	resPlanConflict = "plan with same name already exist"
+	resPlanNotFound = "plan not found"
+)
+
+type Handler struct {
+	Repo Repo
+}
+
+func (h *Handler) CreatePlan(ctx *gin.Context) {
+
+}
+
+func (h *Handler) ListPlans(ctx *gin.Context) {
+
+}
+
+func (h *Handler) GetPlan(ctx *gin.Context) {
+
+}
+
+func (h *Handler) ReplacePlan(ctx *gin.Context) {
+
+}
+
+func (h *Handler) DeletePlan(ctx *gin.Context) {
+
 }
