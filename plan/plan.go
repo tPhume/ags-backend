@@ -18,7 +18,6 @@ type Entity struct {
 	Daily         []Daily    `json:"daily"`
 	Weekly        []Weekly   `json:"weekly"`
 	Monthly       []Monthly  `json:"monthly"`
-	Interval      []Interval `json:"interval"`
 }
 
 // Different type of routine
@@ -35,11 +34,6 @@ type Weekly struct {
 type Monthly struct {
 	MonthlyTime string   `json:"monthly_time" binding:"monthly_time"`
 	Action      []Action `json:"action"`
-}
-
-type Interval struct {
-	IntervalTime string   `json:"interval_time" binding:"interval_time"`
-	Action       []Action `json:"action"`
 }
 
 // Action type
@@ -137,10 +131,6 @@ func monthlyTime(fl validator.FieldLevel) bool {
 	}
 
 	return true
-}
-
-func intervalTime(fl validator.FieldLevel) bool {
-	panic("implement me")
 }
 
 func actionType(fl validator.FieldLevel) bool {
