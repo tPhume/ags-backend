@@ -5,6 +5,8 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"strconv"
+	"strings"
 )
 
 // Represent a Plan object
@@ -49,11 +51,34 @@ type Action struct {
 
 // Custom field validation
 func planName(fl validator.FieldLevel) bool {
-	panic("implement me")
+	if strings.TrimSpace(fl.Field().String()) == "" {
+		return false
+	}
+
+	return true
 }
 
 func dailyTime(fl validator.FieldLevel) bool {
-	panic("implement me")
+	field := fl.Field().String()
+
+	dt := strings.Split(field, ":")
+	if len(dt) != 2 {
+		return false
+	}
+
+	if hour, err := strconv.Atoi(dt[0]); err != nil {
+		return false
+	} else if hour < 0 || hour > 23 {
+		return false
+	}
+
+	if minute, err := strconv.Atoi(dt[1]); err != nil {
+		return false
+	} else if minute < 0 || minute > 59 {
+		return false
+	}
+
+	return true
 }
 
 func weeklyTime(fl validator.FieldLevel) bool {
