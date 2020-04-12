@@ -82,7 +82,32 @@ func dailyTime(fl validator.FieldLevel) bool {
 }
 
 func weeklyTime(fl validator.FieldLevel) bool {
-	panic("implement me")
+	field := fl.Field().String()
+
+	wt := strings.Split(field, ":")
+	if len(wt) != 3 {
+		return false
+	}
+
+	if day, err := strconv.Atoi(wt[0]); err != nil {
+		return false
+	} else if day < 0 || day > 6 {
+		return false
+	}
+
+	if hour, err := strconv.Atoi(wt[1]); err != nil {
+		return false
+	} else if hour < 0 || hour > 23 {
+		return false
+	}
+
+	if minute, err := strconv.Atoi(wt[2]); err != nil {
+		return false
+	} else if minute < 0 || minute > 59 {
+		return false
+	}
+
+	return true
 }
 
 func monthlyTime(fl validator.FieldLevel) bool {
