@@ -290,5 +290,27 @@ func (h *Handler) ReplacePlan(ctx *gin.Context) {
 }
 
 func (h *Handler) DeletePlan(ctx *gin.Context) {
+	userId := ctx.GetString("userId")
+	if userId == "" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
 
+	planId := ctx.Param("planId")
+	if _, err := uuid.Parse(planId); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	if err := h.Repo.DeletePlan(ctx, userId, planId); err != nil {
+		if err == errPlanNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": resPlanNotFound})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		}
+
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": resDeletePlan})
 }
