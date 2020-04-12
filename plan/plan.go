@@ -5,42 +5,44 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"net/http"
 	"strconv"
 	"strings"
 )
 
 // Represent a Plan object
 type Entity struct {
-	PlanId        string    `json:"plan_id" binding:"omitempty,uuid4"`
-	Name          string    `json:"name" binding:"plan_name"`
-	HumidityState int       `json:"humidity_state" binding:"gte=0,lte=100"`
-	TempState     float32   `json:"temp_state" binding:"gte=0,lte=50"`
-	Daily         []Daily   `json:"daily"`
-	Weekly        []Weekly  `json:"weekly"`
-	Monthly       []Monthly `json:"monthly"`
+	PlanId        string    `json:"plan_id" bson:"_id" binding:"omitempty,uuid4"`
+	UserId        string    `json:"-" bson:"user_id" binding:"omitempty,uuid4"`
+	Name          string    `json:"name" bson:"name" binding:"plan_name"`
+	HumidityState int       `json:"humidity_state" bson:"humidity_state" binding:"gte=0,lte=100"`
+	TempState     float32   `json:"temp_state" bson:"temp_state" binding:"gte=0,lte=50"`
+	Daily         []Daily   `json:"daily" bson:"daily"`
+	Weekly        []Weekly  `json:"weekly" bson:"weekly"`
+	Monthly       []Monthly `json:"monthly" bson:"monthly"`
 }
 
 // Different type of routine
 type Daily struct {
-	DailyTime string   `json:"daily_time" binding:"daily_time"`
-	Action    []Action `json:"action"`
+	DailyTime string   `json:"daily_time" bson:"daily_time" binding:"daily_time"`
+	Action    []Action `json:"action" bson:"action"`
 }
 
 type Weekly struct {
-	WeeklyTime string   `json:"weekly_time" binding:"weekly_time"`
-	Action     []Action `json:"action"`
+	WeeklyTime string   `json:"weekly_time" bson:"weekly_time" binding:"weekly_time"`
+	Action     []Action `json:"action" bson:"action"`
 }
 
 type Monthly struct {
-	MonthlyTime string   `json:"monthly_time" binding:"monthly_time"`
-	Action      []Action `json:"action"`
+	MonthlyTime string   `json:"monthly_time" bson:"monthly_time" binding:"monthly_time"`
+	Action      []Action `json:"action" bson:"action"`
 }
 
 // Action type
 type Action struct {
-	Type     string `json:"type" binding:"action_type"`
-	Level    int    `json:"level" binding:"gte=0,lte=100"`
-	Duration int    `json:"duration" binding:"gte=0"`
+	Type     string `json:"type" bson:"type" binding:"action_type"`
+	Level    int    `json:"level" bson:"level" binding:"gte=0,lte=100"`
+	Duration int    `json:"duration" bson:"duration" binding:"gte=0"`
 }
 
 const (
@@ -188,7 +190,29 @@ type Handler struct {
 }
 
 func (h *Handler) CreatePlan(ctx *gin.Context) {
+	userId := ctx.GetString("userId")
+	if userId == "" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
 
+	entity := &Entity{}
+	if err := ctx.ShouldBindJSON(entity); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	if err := h.Repo.CreatePlan(ctx, entity); err != nil {
+		if err == errPlanDuplicate {
+			ctx.JSON(http.StatusConflict, gin.H{"message": resPlanConflict})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		}
+
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"message": resCreatePlan, "result": entity})
 }
 
 func (h *Handler) ListPlans(ctx *gin.Context) {
