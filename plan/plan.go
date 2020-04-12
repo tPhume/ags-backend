@@ -216,7 +216,19 @@ func (h *Handler) CreatePlan(ctx *gin.Context) {
 }
 
 func (h *Handler) ListPlans(ctx *gin.Context) {
+	userId := ctx.GetString("userId")
+	if userId == "" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
 
+	entities, err := h.Repo.ListPlans(ctx, userId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": resListPlans, "result": entities})
 }
 
 func (h *Handler) GetPlan(ctx *gin.Context) {
