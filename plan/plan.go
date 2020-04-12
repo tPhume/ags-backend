@@ -4,12 +4,55 @@ import (
 	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/tPhume/ags-backend/session"
 	"net/http"
 	"strconv"
 	"strings"
 )
+
+func RegisterRoutes(handler *Handler, engine *gin.Engine, sessionHandler *session.Handler) {
+	if err := addValidation(); err != nil {
+		panic("can't register Plan endpoint routes")
+	}
+
+	group := engine.Group("api/v1/plan")
+	group.Use(sessionHandler.GetUser)
+
+	group.POST("", handler.CreatePlan)
+	group.GET("", handler.ListPlans)
+	group.GET(":planId", handler.GetPlan)
+	group.PUT(":planId", handler.ReplacePlan)
+	group.DELETE(":planId", handler.DeletePlan)
+}
+
+func addValidation() error {
+	validate := binding.Validator.Engine().(*validator.Validate)
+
+	if err := validate.RegisterValidation("plan_name", planName); err != nil {
+		return err
+	}
+
+	if err := validate.RegisterValidation("daily_time", dailyTime); err != nil {
+		return err
+	}
+
+	if err := validate.RegisterValidation("weekly_time", weeklyTime); err != nil {
+		return err
+	}
+
+	if err := validate.RegisterValidation("monthly_time", monthlyTime); err != nil {
+		return err
+	}
+
+	if err := validate.RegisterValidation("action_type", actionType); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // Represent a Plan object
 type Entity struct {
@@ -197,7 +240,7 @@ func (h *Handler) CreatePlan(ctx *gin.Context) {
 		return
 	}
 
-	entity := &Entity{}
+	entity := &Entity{PlanId: uuid.New().String(), UserId: userId}
 	if err := ctx.ShouldBindJSON(entity); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		return
@@ -286,7 +329,7 @@ func (h *Handler) ReplacePlan(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": resCreatePlan, "result": entity})
+	ctx.JSON(http.StatusCreated, gin.H{"message": resReplacePlan, "result": entity})
 }
 
 func (h *Handler) DeletePlan(ctx *gin.Context) {
