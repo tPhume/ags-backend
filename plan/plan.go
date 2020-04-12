@@ -11,13 +11,13 @@ import (
 
 // Represent a Plan object
 type Entity struct {
-	PlanId        string     `json:"plan_id" binding:"omitempty,uuid4"`
-	Name          string     `json:"name" binding:"plan_name"`
-	HumidityState int        `json:"humidity_state" binding:"gte=0,lte=100"`
-	TempState     float32    `json:"temp_state" binding:"gte=0,lte=50"`
-	Daily         []Daily    `json:"daily"`
-	Weekly        []Weekly   `json:"weekly"`
-	Monthly       []Monthly  `json:"monthly"`
+	PlanId        string    `json:"plan_id" binding:"omitempty,uuid4"`
+	Name          string    `json:"name" binding:"plan_name"`
+	HumidityState int       `json:"humidity_state" binding:"gte=0,lte=100"`
+	TempState     float32   `json:"temp_state" binding:"gte=0,lte=50"`
+	Daily         []Daily   `json:"daily"`
+	Weekly        []Weekly  `json:"weekly"`
+	Monthly       []Monthly `json:"monthly"`
 }
 
 // Different type of routine
@@ -38,10 +38,15 @@ type Monthly struct {
 
 // Action type
 type Action struct {
-	Type      string `json:"type" binding:"action_type"`
-	Intensity int    `json:"intensity" binding:"gte=0,lte=100"`
-	Duration  int    `json:"duration" binding:"gte=0"`
+	Type     string `json:"type" binding:"action_type"`
+	Level    int    `json:"level" binding:"gte=0,lte=100"`
+	Duration int    `json:"duration" binding:"gte=0"`
 }
+
+const (
+	waterAction = "water"
+	lightAction = "light"
+)
 
 // Custom field validation
 func planName(fl validator.FieldLevel) bool {
@@ -134,7 +139,12 @@ func monthlyTime(fl validator.FieldLevel) bool {
 }
 
 func actionType(fl validator.FieldLevel) bool {
-	panic("implement me")
+	field := fl.Field().String()
+	if field != waterAction && field != lightAction {
+		return false
+	}
+
+	return true
 }
 
 // Repo interface for data source
