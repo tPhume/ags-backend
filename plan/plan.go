@@ -259,12 +259,34 @@ func (h *Handler) GetPlan(ctx *gin.Context) {
 
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, gin.H{"message": resGetPlan, "result": entity})
 }
 
 func (h *Handler) ReplacePlan(ctx *gin.Context) {
+	userId := ctx.GetString("userId")
+	if userId == "" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
 
+	entity := &Entity{PlanId: ctx.Param("planId")}
+	if err := ctx.ShouldBindJSON(entity); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	if err := h.Repo.ReplacePlan(ctx, entity); err != nil {
+		if err == errPlanDuplicate {
+			ctx.JSON(http.StatusConflict, gin.H{"message": resPlanConflict})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		}
+
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"message": resCreatePlan, "result": entity})
 }
 
 func (h *Handler) DeletePlan(ctx *gin.Context) {
