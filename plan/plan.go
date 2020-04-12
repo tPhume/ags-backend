@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"net/http"
 	"strconv"
 	"strings"
@@ -232,7 +233,34 @@ func (h *Handler) ListPlans(ctx *gin.Context) {
 }
 
 func (h *Handler) GetPlan(ctx *gin.Context) {
+	userId := ctx.GetString("userId")
+	if userId == "" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		return
+	}
 
+	planId := ctx.Param("planId")
+	if _, err := uuid.Parse(planId); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	entity := &Entity{
+		PlanId: planId,
+		UserId: userId,
+	}
+
+	if err := h.Repo.GetPlan(ctx, entity); err != nil {
+		if err == errPlanNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": resPlanNotFound})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		}
+
+		return
+	}
+	
+	ctx.JSON(http.StatusOK, gin.H{"message": resGetPlan, "result": entity})
 }
 
 func (h *Handler) ReplacePlan(ctx *gin.Context) {
