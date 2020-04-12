@@ -111,7 +111,32 @@ func weeklyTime(fl validator.FieldLevel) bool {
 }
 
 func monthlyTime(fl validator.FieldLevel) bool {
-	panic("implement me")
+	field := fl.Field().String()
+
+	mt := strings.Split(field, ":")
+	if len(mt) != 3 {
+		return false
+	}
+
+	if date, err := strconv.Atoi(mt[0]); err != nil {
+		return false
+	} else if date < 0 || date > 31 {
+		return false
+	}
+
+	if hour, err := strconv.Atoi(mt[1]); err != nil {
+		return false
+	} else if hour < 0 || hour > 23 {
+		return false
+	}
+
+	if minute, err := strconv.Atoi(mt[2]); err != nil {
+		return false
+	} else if minute < 0 || minute > 59 {
+		return false
+	}
+
+	return true
 }
 
 func intervalTime(fl validator.FieldLevel) bool {
