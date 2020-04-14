@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis/v7"
 	"github.com/spf13/viper"
 	"github.com/tPhume/ags-backend/controller"
+	"github.com/tPhume/ags-backend/plan"
 	"github.com/tPhume/ags-backend/session"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -71,6 +72,10 @@ func main() {
 	}
 
 	// TODO Setup Plan
+	planCol := mongoDatabase.Collection("plan")
+	planRepo := &plan.MongoRepo{Col: planCol}
+
+	planHandler := &plan.Handler{Repo: planRepo}
 
 	// Setup controller
 	controllerCol := mongoDatabase.Collection("controller")
@@ -89,6 +94,7 @@ func main() {
 	engine := gin.New()
 	session.RegisterRoutes(sessionHandler, engine)
 	controller.RegisterRoutes(controllerHandler, engine, sessionHandler)
+	plan.RegisterRoutes(planHandler, engine, sessionHandler)
 
 	log.Fatal(engine.Run("0.0.0.0:9700"))
 }
