@@ -42,7 +42,20 @@ func (m MongoRepo) ListPlans(ctx context.Context, userId string) ([]*Entity, err
 }
 
 func (m MongoRepo) GetPlan(ctx context.Context, entity *Entity) error {
-	panic("implement me")
+	result := m.Col.FindOne(ctx, bson.M{"_id": entity.PlanId, "userId": entity.PlanId})
+	if result.Err() != nil {
+		if result.Err() == mongo.ErrNoDocuments {
+			return errPlanNotFound
+		}
+
+		return result.Err()
+	}
+
+	if err := result.Decode(entity); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m MongoRepo) ReplacePlan(ctx context.Context, entity *Entity) error {
