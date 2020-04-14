@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -27,7 +28,17 @@ func (m MongoRepo) CreatePlan(ctx context.Context, entity *Entity) error {
 }
 
 func (m MongoRepo) ListPlans(ctx context.Context, userId string) ([]*Entity, error) {
-	panic("implement me")
+	cursor, err := m.Col.Find(ctx, bson.M{"userId": userId})
+	if err != nil {
+		return nil, err
+	}
+
+	var entities []*Entity
+	if err := cursor.All(ctx, &entities); err != nil {
+		return nil, err
+	}
+
+	return entities, nil
 }
 
 func (m MongoRepo) GetPlan(ctx context.Context, entity *Entity) error {
