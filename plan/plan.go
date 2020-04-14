@@ -57,7 +57,7 @@ func addValidation() error {
 // Represent a Plan object
 type Entity struct {
 	PlanId        string    `json:"plan_id" bson:"_id" binding:"omitempty,uuid4"`
-	UserId        string    `json:"-" bson:"user_id" binding:"omitempty,uuid4"`
+	UserId        string    `json:"-" bson:"user_id" binding:"omitempty"`
 	Name          string    `json:"name" bson:"name" binding:"plan_name"`
 	HumidityState int       `json:"humidity_state" bson:"humidity_state" binding:"gte=0,lte=100"`
 	TempState     float32   `json:"temp_state" bson:"temp_state" binding:"gte=0,lte=50"`
@@ -69,17 +69,17 @@ type Entity struct {
 // Different type of routine
 type Daily struct {
 	DailyTime string   `json:"daily_time" bson:"daily_time" binding:"daily_time"`
-	Action    []Action `json:"action" bson:"action"`
+	Action    Action `json:"action" bson:"action"`
 }
 
 type Weekly struct {
 	WeeklyTime string   `json:"weekly_time" bson:"weekly_time" binding:"weekly_time"`
-	Action     []Action `json:"action" bson:"action"`
+	Action     Action `json:"action" bson:"action"`
 }
 
 type Monthly struct {
 	MonthlyTime string   `json:"monthly_time" bson:"monthly_time" binding:"monthly_time"`
-	Action      []Action `json:"action" bson:"action"`
+	Action      Action `json:"action" bson:"action"`
 }
 
 // Action type
@@ -186,11 +186,11 @@ func monthlyTime(fl validator.FieldLevel) bool {
 
 func actionType(fl validator.FieldLevel) bool {
 	field := fl.Field().String()
-	if field != waterAction && field != lightAction {
-		return false
+	if field == waterAction || field == lightAction {
+		return true
 	}
 
-	return true
+	return false
 }
 
 // Repo interface for data source
@@ -242,7 +242,7 @@ func (h *Handler) CreatePlan(ctx *gin.Context) {
 
 	entity := &Entity{PlanId: uuid.New().String(), UserId: userId}
 	if err := ctx.ShouldBindJSON(entity); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid, "err": err.Error()})
 		return
 	}
 
