@@ -30,12 +30,12 @@ func (m MongoRepo) CreatePlan(ctx context.Context, entity *Entity) error {
 }
 
 func (m MongoRepo) ListPlans(ctx context.Context, userId string) ([]*Entity, error) {
-	cursor, err := m.Col.Find(ctx, bson.M{"userId": userId})
+	cursor, err := m.Col.Find(ctx, bson.M{"user_id": userId})
 	if err != nil {
 		return nil, err
 	}
 
-	var entities []*Entity
+	entities := make([]*Entity, 0)
 	if err := cursor.All(ctx, &entities); err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (m MongoRepo) ListPlans(ctx context.Context, userId string) ([]*Entity, err
 }
 
 func (m MongoRepo) GetPlan(ctx context.Context, entity *Entity) error {
-	result := m.Col.FindOne(ctx, bson.M{"_id": entity.PlanId, "userId": entity.PlanId})
+	result := m.Col.FindOne(ctx, bson.M{"_id": entity.PlanId, "user_id": entity.UserId})
 	if result.Err() != nil {
 		if result.Err() == mongo.ErrNoDocuments {
 			return errPlanNotFound
@@ -62,7 +62,7 @@ func (m MongoRepo) GetPlan(ctx context.Context, entity *Entity) error {
 
 func (m MongoRepo) ReplacePlan(ctx context.Context, entity *Entity) error {
 	projection := options.FindOneAndReplace().SetProjection(bson.M{"_id": 1})
-	result := m.Col.FindOneAndReplace(ctx, bson.M{"_id": entity.PlanId, "userId": entity.UserId}, entity, projection)
+	result := m.Col.FindOneAndReplace(ctx, bson.M{"_id": entity.PlanId, "user_id": entity.UserId}, entity, projection)
 	if result.Err() != nil {
 		if result.Err() == mongo.ErrNoDocuments {
 			return errPlanNotFound
@@ -81,7 +81,7 @@ func (m MongoRepo) ReplacePlan(ctx context.Context, entity *Entity) error {
 }
 
 func (m MongoRepo) DeletePlan(ctx context.Context, userId string, planId string) error {
-	result, err := m.Col.DeleteOne(ctx, bson.M{"_id": planId, "userId": userId})
+	result, err := m.Col.DeleteOne(ctx, bson.M{"_id": planId, "user_id": userId})
 	if err != nil {
 		return err
 	} else if result.DeletedCount == 0 {

@@ -61,9 +61,9 @@ type Entity struct {
 	Name          string    `json:"name" bson:"name" binding:"plan_name"`
 	HumidityState int       `json:"humidity_state" bson:"humidity_state" binding:"gte=0,lte=100"`
 	TempState     float32   `json:"temp_state" bson:"temp_state" binding:"gte=0,lte=50"`
-	Daily         []Daily   `json:"daily" bson:"daily"`
-	Weekly        []Weekly  `json:"weekly" bson:"weekly"`
-	Monthly       []Monthly `json:"monthly" bson:"monthly"`
+	Daily         []Daily   `json:"daily" bson:"daily" binding:"dive"`
+	Weekly        []Weekly  `json:"weekly" bson:"weekly" binding:"dive"`
+	Monthly       []Monthly `json:"monthly" bson:"monthly" binding:"dive"`
 }
 
 // Different type of routine
@@ -313,7 +313,7 @@ func (h *Handler) ReplacePlan(ctx *gin.Context) {
 		return
 	}
 
-	entity := &Entity{PlanId: ctx.Param("planId")}
+	entity := &Entity{PlanId: ctx.Param("planId"), UserId: userId}
 	if err := ctx.ShouldBindJSON(entity); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		return
