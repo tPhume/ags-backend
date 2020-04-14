@@ -10,7 +10,20 @@ type MongoRepo struct {
 }
 
 func (m MongoRepo) CreatePlan(ctx context.Context, entity *Entity) error {
-	panic("implement me")
+	if _, err := m.Col.InsertOne(ctx, entity); err != nil {
+		writeException, ok := err.(mongo.WriteException)
+		if !ok {
+			return err
+		} else if len(writeException.WriteErrors) == 0 {
+			return err
+		} else if writeException.WriteErrors[0].Code == 11000 {
+			return errPlanDuplicate
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func (m MongoRepo) ListPlans(ctx context.Context, userId string) ([]*Entity, error) {
