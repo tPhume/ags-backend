@@ -19,3 +19,9 @@
 
 *.log
 
+# Env file
+*.env
+
+# docker compose volume
+volume/mongo/*
+!volume/mongo/.keep
