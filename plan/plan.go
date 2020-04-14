@@ -329,7 +329,7 @@ func (h *Handler) ReplacePlan(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": resReplacePlan, "result": entity})
+	ctx.JSON(http.StatusOK, gin.H{"message": resReplacePlan, "result": entity})
 }
 
 func (h *Handler) DeletePlan(ctx *gin.Context) {
