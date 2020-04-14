@@ -2,8 +2,10 @@ package plan
 
 import (
 	"context"
+	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type MongoRepo struct {
@@ -59,7 +61,8 @@ func (m MongoRepo) GetPlan(ctx context.Context, entity *Entity) error {
 }
 
 func (m MongoRepo) ReplacePlan(ctx context.Context, entity *Entity) error {
-	result := m.Col.FindOneAndReplace(ctx, bson.M{"_id": entity.PlanId, "userId": entity.UserId}, entity)
+	projection := options.FindOneAndReplace().SetProjection(bson.M{"_id": 1})
+	result := m.Col.FindOneAndReplace(ctx, bson.M{"_id": entity.PlanId, "userId": entity.UserId}, entity, projection)
 	if result.Err() != nil {
 		if result.Err() == mongo.ErrNoDocuments {
 			return errPlanNotFound
@@ -78,5 +81,14 @@ func (m MongoRepo) ReplacePlan(ctx context.Context, entity *Entity) error {
 }
 
 func (m MongoRepo) DeletePlan(ctx context.Context, userId string, planId string) error {
-	panic("implement me")
+	result, err := m.Col.DeleteOne(ctx, bson.M{"_id": planId, "userId": userId})
+	if err != nil {
+		return err
+	} else if result.DeletedCount == 0 {
+		return errPlanNotFound
+	} else if result.DeletedCount != 1 {
+		return errors.New("should be 1")
+	}
+
+	return nil
 }
