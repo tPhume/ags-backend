@@ -59,7 +59,22 @@ func (m MongoRepo) GetPlan(ctx context.Context, entity *Entity) error {
 }
 
 func (m MongoRepo) ReplacePlan(ctx context.Context, entity *Entity) error {
-	panic("implement me")
+	result := m.Col.FindOneAndReplace(ctx, bson.M{"_id": entity.PlanId, "userId": entity.UserId}, entity)
+	if result.Err() != nil {
+		if result.Err() == mongo.ErrNoDocuments {
+			return errPlanNotFound
+		}
+
+		if err, ok := result.Err().(mongo.CommandError); ok {
+			if err.Code == 11000 {
+				return errPlanDuplicate
+			}
+		}
+
+		return result.Err()
+	}
+
+	return nil
 }
 
 func (m MongoRepo) DeletePlan(ctx context.Context, userId string, planId string) error {

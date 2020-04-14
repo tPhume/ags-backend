@@ -322,6 +322,8 @@ func (h *Handler) ReplacePlan(ctx *gin.Context) {
 	if err := h.Repo.ReplacePlan(ctx, entity); err != nil {
 		if err == errPlanDuplicate {
 			ctx.JSON(http.StatusConflict, gin.H{"message": resPlanConflict})
+		} else if err == errPlanNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": resPlanNotFound})
 		} else {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		}
