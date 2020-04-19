@@ -31,8 +31,8 @@ func RegisterRoutes(handler *Handler, engine *gin.Engine, sessionHandler *sessio
 	group.PUT("/:controllerId", handler.UpdateController)
 	group.DELETE("/:controllerId", handler.RemoveController)
 
-	group.POST("/:controllerId/token", handler.GenerateToken)
-	group.GET("/:controllerId/token", handler.VerifyToken)
+	group.POST("/:controllerId/token/generate", handler.GenerateToken)
+	group.POST("/:controllerId/token/verify", handler.VerifyToken)
 }
 
 // Controller Entity type represent edge device
