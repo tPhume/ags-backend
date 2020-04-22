@@ -71,7 +71,6 @@ func main() {
 		GoogleRepo: sessionGoogle,
 	}
 
-	// TODO Setup Plan
 	planCol := mongoDatabase.Collection("plan")
 	planRepo := &plan.MongoRepo{Col: planCol}
 
