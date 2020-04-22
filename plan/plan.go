@@ -59,8 +59,10 @@ type Entity struct {
 	PlanId        string    `json:"plan_id" bson:"_id" binding:"omitempty,uuid4"`
 	UserId        string    `json:"-" bson:"user_id" binding:"omitempty"`
 	Name          string    `json:"name" bson:"name" binding:"plan_name"`
+	LightState    string    `json:"light_state" bson:"light_state" binding:"gte=0,lte=65535"`
 	HumidityState int       `json:"humidity_state" bson:"humidity_state" binding:"gte=0,lte=100"`
 	TempState     float32   `json:"temp_state" bson:"temp_state" binding:"gte=0,lte=50"`
+	MoistureState int       `json:"moisture_state" bson:"moisture_state" binding:"gte=0,lte=1000"`
 	Daily         []Daily   `json:"daily" bson:"daily" binding:"dive"`
 	Weekly        []Weekly  `json:"weekly" bson:"weekly" binding:"dive"`
 	Monthly       []Monthly `json:"monthly" bson:"monthly" binding:"dive"`
@@ -68,17 +70,17 @@ type Entity struct {
 
 // Different type of routine
 type Daily struct {
-	DailyTime string   `json:"daily_time" bson:"daily_time" binding:"daily_time"`
+	DailyTime string `json:"daily_time" bson:"daily_time" binding:"daily_time"`
 	Action    Action `json:"action" bson:"action"`
 }
 
 type Weekly struct {
-	WeeklyTime string   `json:"weekly_time" bson:"weekly_time" binding:"weekly_time"`
+	WeeklyTime string `json:"weekly_time" bson:"weekly_time" binding:"weekly_time"`
 	Action     Action `json:"action" bson:"action"`
 }
 
 type Monthly struct {
-	MonthlyTime string   `json:"monthly_time" bson:"monthly_time" binding:"monthly_time"`
+	MonthlyTime string `json:"monthly_time" bson:"monthly_time" binding:"monthly_time"`
 	Action      Action `json:"action" bson:"action"`
 }
 
