@@ -130,13 +130,8 @@ var (
 )
 
 func (h *Handler) AddController(ctx *gin.Context) {
-	userId, err := getUserId(ctx)
-	if err != nil {
-		if err == badFormat {
-			ctx.JSON(http.StatusBadRequest, resInvalid)
-			return
-		}
-
+	userId := ctx.GetString("userId")
+	if userId == "" {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
@@ -146,7 +141,7 @@ func (h *Handler) AddController(ctx *gin.Context) {
 		UserId:       userId,
 	}
 
-	if err = ctx.ShouldBindJSON(entity); err != nil {
+	if err := ctx.ShouldBindJSON(entity); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		return
 	}
@@ -165,7 +160,7 @@ func (h *Handler) AddController(ctx *gin.Context) {
 		}
 	}
 
-	if err = h.Repo.AddController(ctx, entity); err != nil {
+	if err := h.Repo.AddController(ctx, entity); err != nil {
 		if err == duplicateName {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": resDup})
 		} else {
@@ -179,13 +174,8 @@ func (h *Handler) AddController(ctx *gin.Context) {
 }
 
 func (h *Handler) ListControllers(ctx *gin.Context) {
-	userId, err := getUserId(ctx)
-	if err != nil {
-		if err == badFormat {
-			ctx.JSON(http.StatusBadRequest, resInvalid)
-			return
-		}
-
+	userId := ctx.GetString("userId")
+	if userId == "" {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
@@ -200,26 +190,21 @@ func (h *Handler) ListControllers(ctx *gin.Context) {
 }
 
 func (h *Handler) GetController(ctx *gin.Context) {
-	userId, err := getUserId(ctx)
-	if err != nil {
-		if err == badFormat {
-			ctx.JSON(http.StatusBadRequest, resInvalid)
-			return
-		}
-
+	userId := ctx.GetString("userId")
+	if userId == "" {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
 
 	// check controllerId
 	controllerId := ctx.Param("controllerId")
-	if _, err = uuid.Parse(controllerId); err != nil {
+	if _, err := uuid.Parse(controllerId); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		return
 	}
 
 	entity := &Entity{ControllerId: controllerId, UserId: userId}
-	if err = h.Repo.GetController(ctx, entity); err != nil {
+	if err := h.Repo.GetController(ctx, entity); err != nil {
 		if err == controllerNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
 		} else {
@@ -233,20 +218,15 @@ func (h *Handler) GetController(ctx *gin.Context) {
 }
 
 func (h *Handler) UpdateController(ctx *gin.Context) {
-	userId, err := getUserId(ctx)
-	if err != nil {
-		if err == badFormat {
-			ctx.JSON(http.StatusBadRequest, resInvalid)
-			return
-		}
-
+	userId := ctx.GetString("userId")
+	if userId == "" {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
 
 	// check controllerId
 	controllerId := ctx.Param("controllerId")
-	if _, err = uuid.Parse(controllerId); err != nil {
+	if _, err := uuid.Parse(controllerId); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		return
 	}
@@ -257,7 +237,7 @@ func (h *Handler) UpdateController(ctx *gin.Context) {
 		UserId:       userId,
 	}
 
-	if err = ctx.ShouldBindJSON(entity); err != nil {
+	if err := ctx.ShouldBindJSON(entity); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		return
 	}
@@ -277,7 +257,7 @@ func (h *Handler) UpdateController(ctx *gin.Context) {
 	}
 
 	// use repo to call external data source
-	if err = h.Repo.UpdateController(ctx, entity); err != nil {
+	if err := h.Repo.UpdateController(ctx, entity); err != nil {
 		if err == controllerNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
 		} else {
@@ -291,20 +271,20 @@ func (h *Handler) UpdateController(ctx *gin.Context) {
 }
 
 func (h *Handler) RemoveController(ctx *gin.Context) {
-	userId, err := getUserId(ctx)
-	if err != nil {
+	userId := ctx.GetString("userId")
+	if userId == "" {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
 
 	// check controllerId
 	controllerId := ctx.Param("controllerId")
-	if _, err = uuid.Parse(controllerId); err != nil {
+	if _, err := uuid.Parse(controllerId); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		return
 	}
 
-	if err = h.Repo.RemoveController(ctx, userId, controllerId); err != nil {
+	if err := h.Repo.RemoveController(ctx, userId, controllerId); err != nil {
 		if err == controllerNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
 			return
@@ -318,8 +298,8 @@ func (h *Handler) RemoveController(ctx *gin.Context) {
 }
 
 func (h *Handler) GenerateToken(ctx *gin.Context) {
-	userId, err := getUserId(ctx)
-	if err != nil {
+	userId := ctx.GetString("userId")
+	if userId == "" {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
@@ -344,20 +324,4 @@ func (h *Handler) GenerateToken(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": resGenerate, "token": token})
-}
-
-// Helper function that returns userId from context
-func getUserId(ctx *gin.Context) (string, error) {
-	// get userId
-	v, exist := ctx.Get("userId")
-	if !exist {
-		return "", keyNotFound
-	}
-
-	userId, ok := v.(string)
-	if !ok {
-		return "", castingFail
-	}
-
-	return userId, nil
 }

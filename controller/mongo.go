@@ -140,7 +140,7 @@ func (m *MongoRepo) GenerateToken(ctx context.Context, userId string, controller
 }
 
 type Result struct {
-	ControllerId string `json:"_id"`
+	ControllerId string `bson:"_id"`
 	Name         string `json:"name"`
 	Desc         string `json:"desc"`
 	Plan         string `json:"plan"`
