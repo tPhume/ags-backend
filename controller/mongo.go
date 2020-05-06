@@ -54,6 +54,7 @@ func (m *MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Enti
 			Name:         result.Name,
 			Desc:         result.Desc,
 			Plan:         result.Plan,
+			Token:        result.Token,
 		})
 	}
 
