@@ -104,14 +104,13 @@ func (h *Handler) CreateSession(ctx *gin.Context) {
 		return
 	}
 
-	sessionId := uuid.New().String()
-	if err := h.Repo.CreateSession(ctx, userEntity, sessionId); err != nil {
+	session := uuid.New().String()
+	if err := h.Repo.CreateSession(ctx, userEntity, session); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal, "details": err})
 		return
 	}
 
-	ctx.SetCookie("sessionId", sessionId, 28800, "/", h.Domain, false, true)
-	ctx.JSON(http.StatusCreated, gin.H{"message": resCreate, "result": userEntity})
+	ctx.JSON(http.StatusCreated, gin.H{"message": resCreate, "user": userEntity, "session": session})
 }
 
 // DeleteSession will delete the session cookie
@@ -127,20 +126,19 @@ func (h *Handler) DeleteSession(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("sessionId", "", 28800, "/", h.Domain, false, true)
 	ctx.JSON(http.StatusOK, gin.H{"message": resDelete})
 }
 
 // GetSession is the middleware that will check the session cookie from request
 // It then sets the userId in context
 func (h *Handler) GetUser(ctx *gin.Context) {
-	sessionId, err := ctx.Cookie("sessionId")
-	if err != nil || strings.TrimSpace(sessionId) == "" {
+	session := ctx.GetHeader("session")
+	if strings.TrimSpace(session) == "" {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": resNotAuth})
 		return
 	}
 
-	userId, err := h.Repo.GetUser(ctx, sessionId)
+	userId, err := h.Repo.GetUser(ctx, session)
 	if err != nil {
 		if err == errNotFound {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": resNotAuth})
