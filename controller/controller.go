@@ -103,7 +103,6 @@ var planNotFound = errors.New("plan not found")
 type Handler struct {
 	Repo     Repo
 	PlanRepo PlanRepo
-	Key      string
 }
 
 var (
