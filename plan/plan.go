@@ -59,8 +59,8 @@ type Entity struct {
 	PlanId        string    `json:"plan_id" bson:"_id" binding:"omitempty,uuid4"`
 	UserId        string    `json:"-" bson:"user_id" binding:"omitempty"`
 	Name          string    `json:"name" bson:"name" binding:"plan_name"`
-	LightState    string    `json:"light_state" bson:"light_state" binding:"gte=0,lte=65535"`
-	HumidityState int       `json:"humidity_state" bson:"humidity_state" binding:"gte=0,lte=100"`
+	LightState    float32   `json:"light_state" bson:"light_state" binding:"gte=0,lte=65535"`
+	HumidityState float32   `json:"humidity_state" bson:"humidity_state" binding:"gte=0,lte=100"`
 	TempState     float32   `json:"temp_state" bson:"temp_state" binding:"gte=0,lte=50"`
 	MoistureState int       `json:"moisture_state" bson:"moisture_state" binding:"gte=0,lte=1000"`
 	Daily         []Daily   `json:"daily" bson:"daily" binding:"dive"`
