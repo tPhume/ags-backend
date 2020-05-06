@@ -175,7 +175,7 @@ func (h *Handler) AddController(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": resAdded, "controller_id": entity.ControllerId})
+	ctx.JSON(http.StatusCreated, gin.H{"message": resAdded, "controller": entity})
 }
 
 func (h *Handler) ListControllers(ctx *gin.Context) {
@@ -196,7 +196,7 @@ func (h *Handler) ListControllers(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": resList, "list": entityList})
+	ctx.JSON(http.StatusOK, gin.H{"message": resList, "controller_list": entityList})
 }
 
 func (h *Handler) GetController(ctx *gin.Context) {
@@ -332,8 +332,8 @@ func (h *Handler) GenerateToken(ctx *gin.Context) {
 	}
 
 	// generate token
-	tokenId := uuid.New().String()
-	if err := h.Repo.GenerateToken(ctx, userId, controllerId, tokenId); err != nil {
+	token := uuid.New().String()
+	if err := h.Repo.GenerateToken(ctx, userId, controllerId, token); err != nil {
 		if err == controllerNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
 			return
@@ -343,7 +343,7 @@ func (h *Handler) GenerateToken(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": resGenerate, "token_id": tokenId})
+	ctx.JSON(http.StatusOK, gin.H{"message": resGenerate, "token": token})
 }
 
 // Helper function that returns userId from context
