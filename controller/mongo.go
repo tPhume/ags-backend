@@ -82,6 +82,7 @@ func (m *MongoRepo) GetController(ctx context.Context, entity *Entity) error {
 	entity.Name = resultBody.Name
 	entity.Desc = resultBody.Desc
 	entity.Plan = resultBody.Plan
+	entity.Token = resultBody.Token
 
 	return nil
 }
@@ -124,37 +125,15 @@ func (m *MongoRepo) RemoveController(ctx context.Context, userId string, control
 	return nil
 }
 
-func (m *MongoRepo) GenerateToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
+func (m *MongoRepo) GenerateToken(ctx context.Context, userId string, controllerId string, token string) error {
 	if result := m.Col.FindOneAndUpdate(ctx, bson.M{"_id": controllerId, "userId": userId}, bson.M{
-		"$set": bson.M{"token": hashToken},
+		"$set": bson.M{"token": token},
 	}); result.Err() != nil {
 		if result.Err() == mongo.ErrNoDocuments {
 			return controllerNotFound
 		}
 
 		return result.Err()
-	}
-
-	return nil
-}
-
-func (m *MongoRepo) VerifyToken(ctx context.Context, userId string, controllerId string, hashToken string) error {
-	result := m.Col.FindOne(ctx, bson.M{"_id": controllerId, "userId": userId})
-	if result.Err() != nil {
-		if result.Err() == mongo.ErrNoDocuments {
-			return controllerNotFound
-		}
-
-		return result.Err()
-	}
-
-	resultBody := &Result{}
-	if err := result.Decode(resultBody); err != nil {
-		return err
-	}
-
-	if resultBody.Token != hashToken {
-		return tokenIncorrect
 	}
 
 	return nil

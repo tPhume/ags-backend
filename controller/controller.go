@@ -4,16 +4,12 @@ package controller
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/tPhume/ags-backend/session"
-	"io"
 	"net/http"
 	"strings"
 )
@@ -32,7 +28,6 @@ func RegisterRoutes(handler *Handler, engine *gin.Engine, sessionHandler *sessio
 	group.DELETE("/:controllerId", handler.RemoveController)
 
 	group.POST("/:controllerId/token/generate", handler.GenerateToken)
-	group.POST("/:controllerId/token/verify", handler.VerifyToken)
 }
 
 // Controller Entity type represent edge device
@@ -42,11 +37,7 @@ type Entity struct {
 	Name         string `json:"name" binding:"required,name"`
 	Desc         string `json:"desc"`
 	Plan         string `json:"plan" binding:"omitempty,uuid4"`
-}
-
-// VerifyToken request body
-type VerifyToken struct {
-	Token string `json:"token" binding:"required,uuid4"`
+	Token        string `json:"token,omitempty"`
 }
 
 // addStructValidation register StructValidation function to Gin's default validator Engine
@@ -89,14 +80,9 @@ type Repo interface {
 	// Missing controller will result in an error
 	RemoveController(context.Context, string, string) error
 
-	// GenerateToken replaces the token (must be hashed prior) given the userId, controllerId and hashed token
+	// GenerateToken replaces the token (must be hashed prior) given the userId, controllerId and tokenId
 	// Missing controller will result in an error
 	GenerateToken(context.Context, string, string, string) error
-
-	// VerifyToken checks the hashed token against the one it has in store
-	// If token does not match the hash it result in an error
-	// Missing controller will result in an error
-	VerifyToken(context.Context, string, string, string) error
 }
 
 // Contains errors that implementation of Repo should use
@@ -348,15 +334,7 @@ func (h *Handler) GenerateToken(ctx *gin.Context) {
 
 	// generate token
 	tokenId := uuid.New().String()
-	hash := hmac.New(sha256.New, []byte(h.Key))
-
-	if _, err := io.WriteString(hash, tokenId); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
-		return
-	}
-	hashedToken := hex.EncodeToString(hash.Sum(nil))
-
-	if err := h.Repo.GenerateToken(ctx, userId, controllerId, hashedToken); err != nil {
+	if err := h.Repo.GenerateToken(ctx, userId, controllerId, tokenId); err != nil {
 		if err == controllerNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
 			return
@@ -367,54 +345,6 @@ func (h *Handler) GenerateToken(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": resGenerate, "token_id": tokenId})
-}
-
-func (h *Handler) VerifyToken(ctx *gin.Context) {
-	userId, err := getUserId(ctx)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
-		return
-	}
-
-	// check controllerId
-	controllerId := ctx.Param("controllerId")
-	if _, err := uuid.Parse(controllerId); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
-		return
-	}
-
-	// check controllerToken
-	body := &VerifyToken{}
-	if err := ctx.ShouldBindJSON(body); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
-		return
-	}
-
-	// find hash of controllerToken
-	hasher := hmac.New(sha256.New, []byte(h.Key))
-
-	if _, err := io.WriteString(hasher, body.Token); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
-		return
-	}
-	hashedToken := hex.EncodeToString(hasher.Sum(nil))
-
-	if err := h.Repo.VerifyToken(ctx, userId, controllerId, hashedToken); err != nil {
-		if err == controllerNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": resNotFound})
-			return
-		}
-
-		if err == tokenIncorrect {
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": resVerifyIncorrect})
-			return
-		}
-
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": resVerifyOk})
 }
 
 // Helper function that returns userId from context
