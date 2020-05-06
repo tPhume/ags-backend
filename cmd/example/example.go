@@ -86,7 +86,6 @@ func main() {
 	controllerHandler := &controller.Handler{
 		Repo:     controllerRepo,
 		PlanRepo: controllerPlanRepo,
-		Key:      "somekey",
 	}
 
 	// Setup gin
