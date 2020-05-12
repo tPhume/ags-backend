@@ -13,7 +13,7 @@ type MongoRepo struct {
 func (m *MongoRepo) AddController(ctx context.Context, entity *Entity) error {
 	if _, err := m.Col.InsertOne(ctx, bson.M{
 		"_id":    entity.ControllerId,
-		"userId": entity.UserId,
+		"user_id": entity.UserId,
 		"name":   entity.Name,
 		"desc":   entity.Desc,
 		"plan":   entity.Plan,
@@ -36,7 +36,7 @@ func (m *MongoRepo) AddController(ctx context.Context, entity *Entity) error {
 }
 
 func (m *MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Entity, error) {
-	cursor, err := m.Col.Find(ctx, bson.M{"userId": userId})
+	cursor, err := m.Col.Find(ctx, bson.M{"user_id": userId})
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (m *MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Enti
 func (m *MongoRepo) GetController(ctx context.Context, entity *Entity) error {
 	result := m.Col.FindOne(ctx, bson.M{
 		"_id":    entity.ControllerId,
-		"userId": entity.UserId,
+		"user_id": entity.UserId,
 	})
 
 	if result.Err() != nil {
@@ -89,7 +89,7 @@ func (m *MongoRepo) GetController(ctx context.Context, entity *Entity) error {
 }
 
 func (m *MongoRepo) UpdateController(ctx context.Context, entity *Entity) error {
-	result := m.Col.FindOneAndUpdate(ctx, bson.M{"_id": entity.ControllerId, "userId": entity.UserId}, bson.M{
+	result := m.Col.FindOneAndUpdate(ctx, bson.M{"_id": entity.ControllerId, "user_id": entity.UserId}, bson.M{
 		"$set": bson.M{
 			"Name": entity.Name,
 			"Desc": entity.Desc,
@@ -127,7 +127,7 @@ func (m *MongoRepo) RemoveController(ctx context.Context, userId string, control
 }
 
 func (m *MongoRepo) GenerateToken(ctx context.Context, userId string, controllerId string, token string) error {
-	if result := m.Col.FindOneAndUpdate(ctx, bson.M{"_id": controllerId, "userId": userId}, bson.M{
+	if result := m.Col.FindOneAndUpdate(ctx, bson.M{"_id": controllerId, "user_id": userId}, bson.M{
 		"$set": bson.M{"token": token},
 	}); result.Err() != nil {
 		if result.Err() == mongo.ErrNoDocuments {
@@ -154,7 +154,7 @@ type MongoPlanRepo struct {
 }
 
 func (m *MongoPlanRepo) PlanExist(ctx context.Context, userId string, planId string) error {
-	if result := m.Col.FindOne(ctx, bson.M{"_id": planId, "userId": userId}); result.Err() != nil {
+	if result := m.Col.FindOne(ctx, bson.M{"_id": planId, "user_id": userId}); result.Err() != nil {
 		if result.Err() == mongo.ErrNoDocuments {
 			return planNotFound
 		}
