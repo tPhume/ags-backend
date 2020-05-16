@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"os"
 	"strings"
 	"time"
 )
@@ -99,7 +100,7 @@ func main() {
 
 func readConfig() {
 	// Set and read configurations
-	viper.SetConfigFile("example.env")
+	viper.SetConfigFile(os.Args[1])
 	viper.AddConfigPath(".")
 
 	err := viper.ReadInConfig()
