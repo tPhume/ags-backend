@@ -39,4 +39,4 @@ WORKDIR ${APP_PATH}
 # Copy binaries from dev stage
 COPY --from=dev ${APP_PATH}/main main
 
-ENTRYPOINT ["/backend/main main.env"]
+ENTRYPOINT ["/backend/main"]
