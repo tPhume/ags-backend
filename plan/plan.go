@@ -18,6 +18,8 @@ func RegisterRoutes(handler *Handler, engine *gin.Engine, sessionHandler *sessio
 		panic("can't register Plan endpoint routes")
 	}
 
+	engine.GET("api-controller/v1/plan", handler.GetPlanWithToken)
+
 	group := engine.Group("api/v1/plan")
 	group.Use(sessionHandler.GetUser)
 

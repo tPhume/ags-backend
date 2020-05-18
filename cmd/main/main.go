@@ -64,11 +64,6 @@ func main() {
 		Repo: sessionRepo,
 	}
 
-	planCol := mongoDatabase.Collection("plan")
-	planRepo := &plan.MongoRepo{Col: planCol}
-
-	planHandler := &plan.Handler{Repo: planRepo}
-
 	// Setup controller
 	controllerCol := mongoDatabase.Collection("controller")
 	controllerPlanCol := mongoDatabase.Collection("plan")
@@ -80,6 +75,12 @@ func main() {
 		Repo:     controllerRepo,
 		PlanRepo: controllerPlanRepo,
 	}
+
+	// Setup plan
+	planCol := mongoDatabase.Collection("plan")
+	planRepo := &plan.MongoRepo{Col: planCol, ControllerCol: controllerPlanCol}
+
+	planHandler := &plan.Handler{Repo: planRepo}
 
 	// Setup gin
 	engine := gin.New()
