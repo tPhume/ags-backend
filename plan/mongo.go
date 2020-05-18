@@ -109,6 +109,10 @@ func (m *MongoRepo) GetPlanId(ctx context.Context, token string) (*Entity, error
 		return nil, err
 	}
 
+	if temp["plan_id"] == nil {
+		return nil, errors.New("")
+	}
+
 	entity := &Entity{
 		PlanId: temp["plan_id"].(string),
 		UserId: temp["user_id"].(string),
