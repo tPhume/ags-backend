@@ -104,7 +104,7 @@ func (m *MongoRepo) GetPlanId(ctx context.Context, token string) (*Entity, error
 		return nil, res.Err()
 	}
 
-	temp := GetPlanIdResult{}
+	temp := &GetPlanIdResult{}
 	if err := res.Decode(temp); err != nil {
 		return nil, err
 	}
