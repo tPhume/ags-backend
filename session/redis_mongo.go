@@ -40,6 +40,15 @@ func (r *RedisMongo) DeleteSession(ctx context.Context, sessionId string) error 
 	return nil
 }
 
+func (r *RedisMongo) CreateUser(ctx context.Context, userEntity *UserEntity) error {
+	_, err := r.UserDb.InsertOne(ctx, bson.M{"_id": userEntity.UserId, "name": userEntity.Name, "password": userEntity.Password})
+	if err != nil {
+		return errConflict
+	}
+
+	return nil
+}
+
 func (r *RedisMongo) GetUser(ctx context.Context, sessionId string) (string, error) {
 	res := r.SessionDb.Get(sessionId)
 	if res.Err() != nil {

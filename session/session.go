@@ -9,9 +9,9 @@ import (
 	"strings"
 )
 
-type mapping map[string]interface{}
-
 func RegisterRoutes(handler *Handler, engine *gin.Engine) {
+
+	engine.POST("api/v1/user", handler.CreateUser)
 
 	group := engine.Group("api/v1/session")
 	group.POST("", handler.CreateSession)
@@ -31,12 +31,15 @@ type Repo interface {
 
 	DeleteSession(context.Context, string) error
 
+	CreateUser(context.Context, *UserEntity) error
+
 	GetUser(context.Context, string) (string, error)
 }
 
 var (
 	errNotFound         = errors.New("session not found")
 	errUserDoesNotExist = errors.New("user does not exist")
+	errConflict         = errors.New("conflict")
 )
 
 // Handler message responses
@@ -91,6 +94,27 @@ func (h *Handler) DeleteSession(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": resDelete})
+}
+
+func (h *Handler) CreateUser(ctx *gin.Context) {
+	userEntity := &UserEntity{}
+	if err := ctx.ShouldBindJSON(userEntity); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	userEntity.UserId = uuid.New().String()
+	if err := h.Repo.CreateUser(ctx, userEntity); err != nil {
+		if err == errConflict {
+			ctx.JSON(http.StatusConflict, gin.H{"message": "could not create user"})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal, "details": err})
+		}
+
+		return
+	}
+
+	ctx.Status(http.StatusCreated)
 }
 
 // GetSession is the middleware that will check the session cookie from request
