@@ -82,13 +82,13 @@ func (h *Handler) CreateSession(ctx *gin.Context) {
 
 // DeleteSession will delete the session cookie
 func (h *Handler) DeleteSession(ctx *gin.Context) {
-	sessionId, err := ctx.Cookie("sessionId")
-	if err != nil || strings.TrimSpace(sessionId) == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+	sessionId := ctx.GetHeader("session")
+	if strings.TrimSpace(sessionId) == "" {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": resNotAuth})
 		return
 	}
 
-	if err = h.Repo.DeleteSession(ctx, sessionId); err != nil {
+	if err := h.Repo.DeleteSession(ctx, sessionId); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		return
 	}
