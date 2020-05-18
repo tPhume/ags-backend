@@ -4,17 +4,14 @@ import (
 	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"net/http"
 	"strings"
 )
 
-type mapping map[string]interface{}
-
 func RegisterRoutes(handler *Handler, engine *gin.Engine) {
-	AddValidation()
+
+	engine.POST("api/v1/user", handler.CreateUser)
 
 	group := engine.Group("api/v1/session")
 	group.POST("", handler.CreateSession)
@@ -23,30 +20,9 @@ func RegisterRoutes(handler *Handler, engine *gin.Engine) {
 
 // Represent a user
 type UserEntity struct {
-	UserId        string `json:"user_id"`
-	Email         string `json:"email"`
-	EmailVerified bool   `json:"email_verified"`
-	Name          string `json:"name"`
-	Picture       string `json:"picture"`
-}
-
-// To be bind for create request
-type CreateRequest struct {
-	AccessCode string `json:"access_code" binding:"accessCode"`
-}
-
-// field level validation
-func AccessCodeValidation(fl validator.FieldLevel) bool {
-	if strings.TrimSpace(fl.Field().String()) == "" {
-		return false
-	}
-
-	return true
-}
-
-func AddValidation() {
-	validate := binding.Validator.Engine().(*validator.Validate)
-	_ = validate.RegisterValidation("accessCode", AccessCodeValidation)
+	UserId   string `json:"user_id"`
+	Name     string `json:"name" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 // Repo type interacts with data source that has session database
@@ -55,17 +31,16 @@ type Repo interface {
 
 	DeleteSession(context.Context, string) error
 
+	CreateUser(context.Context, *UserEntity) error
+
 	GetUser(context.Context, string) (string, error)
 }
 
-var errNotFound = errors.New("session not found")
-
-// GoogleRepo interacts with google api
-type GoogleRepo interface {
-	GetIdToken(context.Context, string, *UserEntity) error
-}
-
-var errBadCode = errors.New("bad access_code")
+var (
+	errNotFound         = errors.New("session not found")
+	errUserDoesNotExist = errors.New("user does not exist")
+	errConflict         = errors.New("conflict")
+)
 
 // Handler message responses
 const (
@@ -79,38 +54,30 @@ const (
 
 // Handler stores Repo type that interacts with data source
 type Handler struct {
-	Domain     string
-	Repo       Repo
-	GoogleRepo GoogleRepo
+	Repo Repo
 }
 
 // CreateSession takes an exchange token and set cookie
 // Return body includes user information
 func (h *Handler) CreateSession(ctx *gin.Context) {
-	request := &CreateRequest{}
-	if err := ctx.ShouldBindJSON(request); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
-		return
-	}
-
 	userEntity := &UserEntity{}
-	if err := h.GoogleRepo.GetIdToken(ctx, request.AccessCode, userEntity); err != nil {
-		if err == errBadCode {
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal, "details": "google exchange"})
-		}
-
+	if err := ctx.ShouldBindJSON(userEntity); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
 		return
 	}
 
 	session := uuid.New().String()
 	if err := h.Repo.CreateSession(ctx, userEntity, session); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal, "details": err})
+		if err == errUserDoesNotExist {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "credentials not match or user does not exist"})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal, "details": err})
+		}
+
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": resCreate, "user": userEntity, "session": session})
+	ctx.JSON(http.StatusCreated, gin.H{"message": resCreate, "user": userEntity.Name, "session": session})
 }
 
 // DeleteSession will delete the session cookie
@@ -127,6 +94,27 @@ func (h *Handler) DeleteSession(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": resDelete})
+}
+
+func (h *Handler) CreateUser(ctx *gin.Context) {
+	userEntity := &UserEntity{}
+	if err := ctx.ShouldBindJSON(userEntity); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	userEntity.UserId = uuid.New().String()
+	if err := h.Repo.CreateUser(ctx, userEntity); err != nil {
+		if err == errConflict {
+			ctx.JSON(http.StatusConflict, gin.H{"message": "could not create user"})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal, "details": err})
+		}
+
+		return
+	}
+
+	ctx.Status(http.StatusCreated)
 }
 
 // GetSession is the middleware that will check the session cookie from request
