@@ -23,6 +23,10 @@ func (r *RedisMongo) CreateSession(ctx context.Context, userEntity *UserEntity, 
 		return res.Err()
 	}
 
+	if err := res.Decode(userEntity); err != nil {
+		return err
+	}
+
 	// Create new session
 	if err := r.SessionDb.Set(sessionId, userEntity.UserId, time.Hour*8).Err(); err != nil {
 		return err

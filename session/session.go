@@ -20,9 +20,9 @@ func RegisterRoutes(handler *Handler, engine *gin.Engine) {
 
 // Represent a user
 type UserEntity struct {
-	UserId   string `json:"user_id"`
-	Name     string `json:"name" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	UserId   string `json:"user_id" bson:"_id"`
+	Name     string `json:"name" bson:"name" binding:"required"`
+	Password string `json:"password" bson:"password" binding:"required"`
 }
 
 // Repo type interacts with data source that has session database
