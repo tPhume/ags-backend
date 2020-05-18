@@ -55,21 +55,13 @@ func main() {
 	// Setup session
 	userCol := mongoDatabase.Collection("user")
 
-	sessionGoogle := &session.GoogleApi{
-		ClientId:     clientId,
-		ClientSecret: clientSecret,
-		RedirectUri:  redirectUri,
-	}
-
 	sessionRepo := &session.RedisMongo{
 		UserDb:    userCol,
 		SessionDb: redisClient,
 	}
 
 	sessionHandler := &session.Handler{
-		Domain:     "localhost",
-		Repo:       sessionRepo,
-		GoogleRepo: sessionGoogle,
+		Repo: sessionRepo,
 	}
 
 	planCol := mongoDatabase.Collection("plan")
