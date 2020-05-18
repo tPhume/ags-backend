@@ -78,7 +78,7 @@ func main() {
 
 	// Setup plan
 	planCol := mongoDatabase.Collection("plan")
-	planRepo := &plan.MongoRepo{Col: planCol, ControllerCol: controllerCol}
+	planRepo := &plan.MongoRepo{Col: planCol, ControllerCol: planCol}
 
 	planHandler := &plan.Handler{Repo: planRepo}
 
