@@ -9,7 +9,8 @@ import (
 )
 
 type MongoRepo struct {
-	Col *mongo.Collection
+	Col           *mongo.Collection
+	ControllerCol *mongo.Collection
 }
 
 func (m MongoRepo) CreatePlan(ctx context.Context, entity *Entity) error {
@@ -91,4 +92,27 @@ func (m MongoRepo) DeletePlan(ctx context.Context, userId string, planId string)
 	}
 
 	return nil
+}
+
+func (m *MongoRepo) GetPlanId(ctx context.Context, token string) (*Entity, error) {
+	res := m.ControllerCol.FindOne(ctx, bson.M{"token": token})
+	if res.Err() != nil {
+		if res.Err() == mongo.ErrNoDocuments {
+			return nil, errTokenNotFound
+		}
+
+		return nil, res.Err()
+	}
+
+	temp := make(map[string]interface{})
+	if err := res.Decode(&temp); err != nil {
+		return nil, err
+	}
+
+	entity := &Entity{
+		PlanId: temp["plan_id"].(string),
+		UserId: temp["user_id"].(string),
+	}
+
+	return entity, nil
 }

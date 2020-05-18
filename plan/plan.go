@@ -200,6 +200,8 @@ func actionType(fl validator.FieldLevel) bool {
 var (
 	errPlanNotFound  = errors.New("plan not found")
 	errPlanDuplicate = errors.New("plan with that name already exist")
+
+	errTokenNotFound = errors.New("token not found")
 )
 
 type Repo interface {
@@ -212,6 +214,8 @@ type Repo interface {
 	ReplacePlan(ctx context.Context, entity *Entity) error
 
 	DeletePlan(ctx context.Context, userId string, planId string) error
+
+	GetPlanId(ctx context.Context, token string) (*Entity, error)
 }
 
 // Handler for Plan endpoint
@@ -360,4 +364,39 @@ func (h *Handler) DeletePlan(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": resDeletePlan})
+}
+
+// This is for the Controller using Token
+func (h *Handler) GetPlanWithToken(ctx *gin.Context) {
+	token := ctx.GetHeader("token")
+	if strings.TrimSpace(token) == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": resInvalid})
+		return
+	}
+
+	// Get the plan id for controller first
+	entity, err := h.Repo.GetPlanId(ctx, token)
+	if err != nil {
+		if err == errTokenNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "token not found"})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal, "err": err, "details": err.Error()})
+		}
+
+		return
+	}
+
+	// Get Plan now
+	err = h.Repo.GetPlan(ctx, entity)
+	if err != nil {
+		if err == errPlanNotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": resPlanNotFound})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
+		}
+
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": resGetPlan, "result": entity})
 }
