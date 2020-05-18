@@ -109,12 +109,12 @@ func (m *MongoRepo) GetPlanId(ctx context.Context, token string) (*Entity, error
 		return nil, err
 	}
 
-	if temp.PlanId == "" {
+	if temp.Plan == "" {
 		return nil, errNoPlanId
 	}
 
 	entity := &Entity{
-		PlanId: temp.PlanId,
+		PlanId: temp.Plan,
 		UserId: temp.UserId,
 	}
 
@@ -122,6 +122,6 @@ func (m *MongoRepo) GetPlanId(ctx context.Context, token string) (*Entity, error
 }
 
 type GetPlanIdResult struct {
-	PlanId string `bson:"plan_id"`
+	Plan string `bson:"plan"`
 	UserId string `bson:"user_id"`
 }
