@@ -91,9 +91,9 @@ func (m *MongoRepo) GetController(ctx context.Context, entity *Entity) error {
 func (m *MongoRepo) UpdateController(ctx context.Context, entity *Entity) error {
 	result := m.Col.FindOneAndUpdate(ctx, bson.M{"_id": entity.ControllerId, "user_id": entity.UserId}, bson.M{
 		"$set": bson.M{
-			"Name": entity.Name,
-			"Desc": entity.Desc,
-			"Plan": entity.Plan,
+			"name": entity.Name,
+			"desc": entity.Desc,
+			"plan": entity.Plan,
 		},
 	})
 
