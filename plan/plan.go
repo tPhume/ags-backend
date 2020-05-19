@@ -204,6 +204,7 @@ var (
 	errPlanDuplicate = errors.New("plan with that name already exist")
 
 	errTokenNotFound = errors.New("token not found")
+	errNoPlanId      = errors.New("no plan set")
 )
 
 type Repo interface {
@@ -381,6 +382,8 @@ func (h *Handler) GetPlanWithToken(ctx *gin.Context) {
 	if err != nil {
 		if err == errTokenNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "token not found"})
+		} else if err == errNoPlanId {
+			ctx.JSON(http.StatusOK, gin.H{"message": "no plan set"})
 		} else {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal, "err": err, "details": err.Error()})
 		}

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v7"
 	"github.com/spf13/viper"
@@ -83,7 +84,17 @@ func main() {
 	planHandler := &plan.Handler{Repo: planRepo}
 
 	// Setup gin
+	corsConfig := cors.Config{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"},
+		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
+		AllowCredentials: false,
+		MaxAge:           12 * time.Hour,
+	}
+
 	engine := gin.New()
+	engine.Use(cors.New(corsConfig))
+
 	session.RegisterRoutes(sessionHandler, engine)
 	controller.RegisterRoutes(controllerHandler, engine, sessionHandler)
 	plan.RegisterRoutes(planHandler, engine, sessionHandler)

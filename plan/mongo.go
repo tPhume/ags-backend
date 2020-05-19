@@ -104,15 +104,24 @@ func (m *MongoRepo) GetPlanId(ctx context.Context, token string) (*Entity, error
 		return nil, res.Err()
 	}
 
-	temp := make(map[string]interface{})
-	if err := res.Decode(&temp); err != nil {
+	temp := &GetPlanIdResult{}
+	if err := res.Decode(temp); err != nil {
 		return nil, err
 	}
 
+	if temp.Plan == "" {
+		return nil, errNoPlanId
+	}
+
 	entity := &Entity{
-		PlanId: temp["plan_id"].(string),
-		UserId: temp["user_id"].(string),
+		PlanId: temp.Plan,
+		UserId: temp.UserId,
 	}
 
 	return entity, nil
+}
+
+type GetPlanIdResult struct {
+	Plan string `bson:"plan"`
+	UserId string `bson:"user_id"`
 }
