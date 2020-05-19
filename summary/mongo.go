@@ -10,7 +10,7 @@ type Mongo struct {
 	Col *mongo.Collection
 }
 
-func (m Mongo) ListSummary(ctx context.Context, userId string, controllerId string) ([]*Summary, error) {
+func (m *Mongo) ListSummary(ctx context.Context, userId string, controllerId string) ([]*Summary, error) {
 	cursor, err := m.Col.Find(ctx, bson.M{"user_id": userId, "controller_id": controllerId})
 	if err != nil {
 		return nil, err

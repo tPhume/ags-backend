@@ -3,8 +3,17 @@ package summary
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/tPhume/ags-backend/session"
 	"net/http"
 )
+
+func RegisterRoutes(handler *Handler, engine *gin.Engine, sessionHandler *session.Handler) {
+	group := engine.Group("api/v1/summary")
+	group.Use(sessionHandler.GetUser)
+
+	group.GET(":controllerId", handler.ListSummary)
+
+}
 
 type Summary struct {
 	UserId             string  `json:"user_id" bson:"user_id"`
