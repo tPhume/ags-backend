@@ -10,6 +10,7 @@ import (
 	"github.com/tPhume/ags-backend/controller"
 	"github.com/tPhume/ags-backend/plan"
 	"github.com/tPhume/ags-backend/session"
+	"github.com/tPhume/ags-backend/summary"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -83,6 +84,12 @@ func main() {
 
 	planHandler := &plan.Handler{Repo: planRepo}
 
+	// Setup summary
+	summaryCol := mongoDatabase.Collection("summary")
+	summaryRepo := &summary.Mongo{Col: summaryCol}
+
+	summaryHandler := &summary.Handler{Repo: summaryRepo}
+
 	// Setup gin
 	corsConfig := cors.Config{
 		AllowAllOrigins:  true,
@@ -98,6 +105,7 @@ func main() {
 	session.RegisterRoutes(sessionHandler, engine)
 	controller.RegisterRoutes(controllerHandler, engine, sessionHandler)
 	plan.RegisterRoutes(planHandler, engine, sessionHandler)
+	summary.RegisterRoutes(summaryHandler, engine, sessionHandler)
 
 	log.Fatal(engine.Run("0.0.0.0:9700"))
 }
