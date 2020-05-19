@@ -1,5 +1,11 @@
 package summary
 
+import (
+	"context"
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
 type Summary struct {
 	UserId             string  `json:"user_id" bson:"user_id"`
 	ControllerId       string  `json:"controller_id" bson:"controller_id"`
@@ -14,4 +20,32 @@ type Summary struct {
 	MedianSoilMoisture float64 `json:"median_soil_moisture" bson:"median_soil_moisture"`
 	MedianTemperature  float64 `json:"median_temperature" bson:"median_temperature"`
 	MedianWaterLevel   float64 `json:"median_water_level" bson:"median_water_level"`
+}
+
+type Repo interface {
+	ListSummary(ctx context.Context, userId string, controllerId string) ([]*Summary, error)
+}
+
+type Handler struct {
+	Repo Repo
+}
+
+func (h *Handler) ListSummary(ctx *gin.Context) {
+	// Get values
+	userId := ctx.GetString("userId")
+	if userId == "" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "internal server error from middleware"})
+		return
+	}
+
+	controllerId := ctx.Param("controllerId")
+
+	// Get List
+	entities, err := h.Repo.ListSummary(ctx, userId, controllerId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "internal server error on retrieval"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"summary_list": entities})
 }
