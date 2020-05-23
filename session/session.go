@@ -77,7 +77,7 @@ func (h *Handler) CreateSession(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": resCreate, "user": userEntity.Name, "session": session})
+	ctx.JSON(http.StatusCreated, gin.H{"message": resCreate, "user": userEntity.Name, "session": session, "user_id": userEntity.UserId})
 }
 
 // DeleteSession will delete the session cookie
