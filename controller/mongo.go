@@ -12,11 +12,12 @@ type MongoRepo struct {
 
 func (m *MongoRepo) AddController(ctx context.Context, entity *Entity) (error, error) {
 	if _, err := m.Col.InsertOne(ctx, bson.M{
-		"_id":    entity.ControllerId,
+		"_id":     entity.ControllerId,
 		"user_id": entity.UserId,
-		"name":   entity.Name,
-		"desc":   entity.Desc,
-		"plan":   entity.Plan,
+		"name":    entity.Name,
+		"desc":    entity.Desc,
+		"plan":    entity.Plan,
+		"token":   entity.Token,
 	}); err != nil {
 		writeException, ok := err.(mongo.WriteException)
 		if !ok {
@@ -63,7 +64,7 @@ func (m *MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Enti
 
 func (m *MongoRepo) GetController(ctx context.Context, entity *Entity) error {
 	result := m.Col.FindOne(ctx, bson.M{
-		"_id":    entity.ControllerId,
+		"_id":     entity.ControllerId,
 		"user_id": entity.UserId,
 	})
 

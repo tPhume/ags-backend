@@ -139,6 +139,7 @@ func (h *Handler) AddController(ctx *gin.Context) {
 	entity := &Entity{
 		ControllerId: uuid.New().String(),
 		UserId:       userId,
+		Token:        uuid.New().String(),
 	}
 
 	if err := ctx.ShouldBindJSON(entity); err != nil {
