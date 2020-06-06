@@ -10,7 +10,7 @@ type MongoRepo struct {
 	Col *mongo.Collection
 }
 
-func (m *MongoRepo) AddController(ctx context.Context, entity *Entity) error {
+func (m *MongoRepo) AddController(ctx context.Context, entity *Entity) (error, error) {
 	if _, err := m.Col.InsertOne(ctx, bson.M{
 		"_id":    entity.ControllerId,
 		"user_id": entity.UserId,
@@ -20,19 +20,19 @@ func (m *MongoRepo) AddController(ctx context.Context, entity *Entity) error {
 	}); err != nil {
 		writeException, ok := err.(mongo.WriteException)
 		if !ok {
-			return err
+			return err, err
 		}
 
 		if len(writeException.WriteErrors) == 0 {
-			return err
+			return err, err
 		}
 
 		if writeException.WriteErrors[0].Code == 11000 {
-			return duplicateName
+			return duplicateName, err
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (m *MongoRepo) ListControllers(ctx context.Context, userId string) ([]*Entity, error) {
