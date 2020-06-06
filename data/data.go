@@ -18,13 +18,13 @@ func RegisterRoutes(handler *Handler, engine *gin.Engine, sessionHandler *sessio
 
 // Controller Entity type represent edge device
 type Entity struct {
-	ControllerId string  `bson:"_id"`
-	UserId       string  `bson:"user_id"`
-	Temperature  float64 `bson:"temperature"`
-	Humidity     float64 `bson:"humidity" validate:"gte=0,lte=100"`
-	Light        float64 `bson:"light" validate:"gte=0,lte=65535"`
-	SoilMoisture int     `bson:"soil_moisture" validate:"gte=0,lte=1000"`
-	WaterLevel   int     `bson:"water_level" validate:"gte=0"`
+	ControllerId string  `bson:"_id" json:"controller_id"`
+	UserId       string  `bson:"user_id" json:"user_id"`
+	Temperature  float64 `bson:"temperature" json:"temperature"`
+	Humidity     float64 `bson:"humidity" json:"humidity"`
+	Light        float64 `bson:"light" json:"light"`
+	SoilMoisture int     `bson:"soil_moisture" json:"soil_moisture"`
+	WaterLevel   int     `bson:"water_level" json:"water_level"`
 }
 
 // Repo
