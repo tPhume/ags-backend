@@ -62,7 +62,7 @@ func NameValidation(fl validator.FieldLevel) bool {
 type Repo interface {
 	// AddController creates new controller at data source given *Entity type
 	// Duplicated Controller entity will result in an error
-	AddController(context.Context, *Entity) error
+	AddController(context.Context, *Entity) (error, error)
 
 	// ListControllers fetches all controller under the given UserId
 	// Return of empty slice does not imply error
@@ -160,9 +160,9 @@ func (h *Handler) AddController(ctx *gin.Context) {
 		}
 	}
 
-	if err := h.Repo.AddController(ctx, entity); err != nil {
-		if err == duplicateName {
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": resDup})
+	if err1, err2 := h.Repo.AddController(ctx, entity); err1 != nil {
+		if err1 == duplicateName {
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": resDup, "err": err2.Error(), "raw": err2})
 		} else {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"message": resInternal})
 		}

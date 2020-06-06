@@ -8,6 +8,7 @@ import (
 	"github.com/go-redis/redis/v7"
 	"github.com/spf13/viper"
 	"github.com/tPhume/ags-backend/controller"
+	"github.com/tPhume/ags-backend/data"
 	"github.com/tPhume/ags-backend/plan"
 	"github.com/tPhume/ags-backend/session"
 	"github.com/tPhume/ags-backend/summary"
@@ -90,6 +91,12 @@ func main() {
 
 	summaryHandler := &summary.Handler{Repo: summaryRepo}
 
+	// Setup data
+	dataCol := mongoDatabase.Collection("data")
+	dataRepo := &data.MongoRepo{Col: dataCol}
+
+	dataHandler := &data.Handler{Repo: dataRepo}
+
 	// Setup gin
 	corsConfig := cors.Config{
 		AllowAllOrigins:  true,
@@ -106,6 +113,7 @@ func main() {
 	controller.RegisterRoutes(controllerHandler, engine, sessionHandler)
 	plan.RegisterRoutes(planHandler, engine, sessionHandler)
 	summary.RegisterRoutes(summaryHandler, engine, sessionHandler)
+	data.RegisterRoutes(dataHandler, engine, sessionHandler)
 
 	log.Fatal(engine.Run("0.0.0.0:9700"))
 }
